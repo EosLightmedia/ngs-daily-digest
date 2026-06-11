@@ -1,0 +1,4 @@
+gspread>=6.0
+google-auth>=2.0
+slack_sdk>=3.27
+tzdata>=2024.1

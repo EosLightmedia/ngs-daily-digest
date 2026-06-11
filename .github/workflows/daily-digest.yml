@@ -1,0 +1,38 @@
+name: NGS Daily Digest
+
+on:
+  schedule:
+    # 11:00 UTC = 7:00 AM EDT (the event runs in June, so Eastern is on DST).
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Optional YYYY-MM-DD to report (default: today)"
+        required: false
+      dry_run:
+        description: "Print blocks instead of posting"
+        type: boolean
+        default: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Post digest
+        env:
+          GSPREAD_SERVICE_ACCOUNT: ${{ secrets.GSPREAD_SERVICE_ACCOUNT }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID || 'C0B9YCS6ALR' }}
+        run: |
+          python digest.py \
+            ${{ inputs.date && format('--date {0}', inputs.date) || '' }} \
+            ${{ inputs.dry_run && '--dry-run' || '' }}

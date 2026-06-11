@@ -1,0 +1,8 @@
+{
+  "_comment": "Map the first-names used in the sheet's 'Eos Staff' column to Slack member IDs (U…). Member IDs are NOT secret. Unmapped names render as bold plain text instead of an @-mention. Find an ID via a user's Slack profile → 'Copy member ID'.",
+  "Oona": "U0831CJ4KK5",
+  "Danny": "U0A38A9UL21",
+  "James": "U05C6R252GL",
+  "Rick": "U098MRQN5AQ",
+  "Benjamin": "U09PQPU0D7F"
+}
