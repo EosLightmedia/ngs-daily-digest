@@ -16,6 +16,7 @@ import config
 import schedule_reader as sr
 
 _STAFF_MAP_PATH = Path(__file__).with_name("staff_slack_ids.json")
+_CC_MAP_PATH = Path(__file__).with_name("cc_slack_ids.json")
 
 
 # --------------------------------------------------------------------------- #
@@ -37,6 +38,36 @@ def render_people(names: list[str], staff_map: dict[str, str] | None = None) -> 
         sid = staff_map.get(n) or staff_map.get(n.lower()) or staff_map.get(n.title())
         out.append(f"<@{sid}>" if sid else f"*{n}*")
     return ", ".join(out)
+
+
+# --------------------------------------------------------------------------- #
+# Image-post caption (the only text accompanying the one-page image)
+# --------------------------------------------------------------------------- #
+def _load_cc() -> dict[str, str]:
+    if _CC_MAP_PATH.exists():
+        return {k: v for k, v in json.loads(_CC_MAP_PATH.read_text()).items()
+                if not k.startswith("_")}
+    return {}
+
+
+def crew_mentions(block: sr.DayBlock, staff_map: dict[str, str] | None = None) -> str:
+    """@-mention every person called on any system today (de-duped, in order)."""
+    names: list[str] = []
+    for fn in sr.crew_call(block):
+        for p in fn["people"]:
+            if p["name"] not in names:
+                names.append(p["name"])
+    return render_people(names, staff_map)
+
+
+def build_image_caption(block: sr.DayBlock, staff_map: dict[str, str] | None = None) -> str:
+    """Two-line caption that accompanies the day's image: who's called + CC."""
+    crew = crew_mentions(block, staff_map)
+    lines = [f"Crew called: {crew}" if crew else "Crew called: _nobody scheduled_"]
+    cc = ", ".join(f"<@{sid}>" for sid in _load_cc().values())
+    if cc:
+        lines.append(f"CC: {cc}")
+    return "\n".join(lines)
 
 
 # --------------------------------------------------------------------------- #
@@ -143,9 +174,23 @@ def build_blocks(block: sr.DayBlock, staff_map: dict[str, str] | None = None) ->
 # Posting
 # --------------------------------------------------------------------------- #
 def post(blocks: list[dict], fallback: str, channel: str) -> dict:
-    """Post to Slack via the bot token in SLACK_BOT_TOKEN."""
+    """Post a Block Kit message via the bot token in SLACK_BOT_TOKEN.
+
+    Retained for reference/testing; the live digest now posts an image instead.
+    """
     from slack_sdk import WebClient
 
     client = WebClient(token=os.environ["SLACK_BOT_TOKEN"])
     resp = client.chat_postMessage(channel=channel, blocks=blocks, text=fallback)
     return resp.data
+
+
+def upload_image(image_path, caption: str, channel: str,
+                 title: str = "NGS Daily Digest") -> dict:
+    """Upload the day's one-page image with its caption — this IS the post."""
+    from slack_sdk import WebClient
+
+    client = WebClient(token=os.environ["SLACK_BOT_TOKEN"])
+    resp = client.files_upload_v2(channel=channel, file=str(image_path),
+                                  title=title, initial_comment=caption)
+    return resp.get("file", {})

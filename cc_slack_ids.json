@@ -1,0 +1,10 @@
+{
+  "_comment": "Standing CC distribution list for the NGS daily digest image post. Labels (first name + last initial) resolved to Slack member IDs via the workspace directory (users:read). Member IDs are NOT secret. Order here is the order they render in the 'CC:' line. Edit this file to change who gets CC'd.",
+  "Oona": "U0831CJ4KK5",
+  "Danny T": "U0A38A9UL21",
+  "Kim K": "U08RJ9RFPMF",
+  "Trish O": "U06DZH1J0VC",
+  "Scott W": "U094DL2EQQM",
+  "Derby": "U0AA4GEE5HN",
+  "Rick W": "U098MRQN5AQ"
+}
