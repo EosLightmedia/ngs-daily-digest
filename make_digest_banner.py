@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Generate a header banner for the NGS Daily Digest Slack message."""
+from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
-import math
+
+BASE = Path(__file__).resolve().parent
+ASSETS = BASE / "assets"
 
 W, H = 1600, 480
 SUPER = 2  # supersample for crisp edges
@@ -40,8 +44,8 @@ d.rectangle([bar_x, int(h * 0.30), bar_x + 10 * SUPER, int(h * 0.72)], fill="#4f
 def font(path, size):
     return ImageFont.truetype(path, size * SUPER)
 
-KARLA_REG  = "/Users/oonacurley/Library/Fonts/Karla-Regular.ttf"
-KARLA_BOLD = "/Users/oonacurley/Library/Fonts/Karla-Bold.ttf"
+KARLA_REG  = str(ASSETS / "fonts" / "Karla-Regular.ttf")
+KARLA_BOLD = str(ASSETS / "fonts" / "Karla-Bold.ttf")
 f_kicker = font(KARLA_BOLD, 30)
 f_title = font(KARLA_BOLD, 96)
 f_date = font(KARLA_REG, 34)
@@ -59,6 +63,6 @@ d.text((tx, int(h * 0.70)), "Friday, June 12, 2026", font=f_date, fill="#4fd1e0"
 
 # downscale for crisp anti-aliased result
 img = img.resize((W, H), Image.LANCZOS)
-out = "/Users/oonacurley/Desktop/claude/NGS/ngs_digest_banner.png"
+out = str(BASE / "ngs_digest_banner.png")
 img.save(out)
 print("saved", out)

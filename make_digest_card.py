@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import calendar
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from PIL import Image, ImageDraw, ImageFont, ImageChops
@@ -98,13 +99,15 @@ w = W * SS             # render width (stays constant — full bleed, never scal
 PAGE_ASPECT = 11 / 8.5 # Letter, portrait (height / width)
 TARGET_H = w * PAGE_ASPECT
 
-KARLA_REG  = "/Users/oonacurley/Library/Fonts/Karla-Regular.ttf"
-KARLA_BOLD = "/Users/oonacurley/Library/Fonts/Karla-Bold.ttf"
+BASE = Path(__file__).resolve().parent
+ASSETS = BASE / "assets"
+KARLA_REG  = str(ASSETS / "fonts" / "Karla-Regular.ttf")
+KARLA_BOLD = str(ASSETS / "fonts" / "Karla-Bold.ttf")
 
 BLACK  = (0, 0, 0)        # NGS brand
 GOLD   = (255, 204, 0)    # NGS brand #FFCC00
-LOGO_PATH = "/Users/oonacurley/Desktop/claude/NGS/ngs-slack-icon.png"
-EOS_LOGO_PATH = "/Users/oonacurley/Desktop/claude/eosone-workflow/frontend/public/Eos-Logo-Vertical-Black.png"
+LOGO_PATH = str(ASSETS / "ngs-logo.png")
+EOS_LOGO_PATH = str(ASSETS / "eos-logo-vertical.png")
 INK    = (28, 34, 48)
 SUB    = (110, 122, 145)
 LINE   = (224, 230, 240)
@@ -316,8 +319,8 @@ page_h = int(round(TARGET_H))
 page = Image.new("RGB", (w, page_h), BG)
 page.paste(img.crop((0, 0, w, min(int(round(cb)), page_h))), (0, 0))
 
-png = "/Users/oonacurley/Desktop/claude/NGS/ngs_digest_card.png"
-pdf = "/Users/oonacurley/Desktop/claude/NGS/ngs_digest_card.pdf"
+png = str(BASE / "ngs_digest_card.png")
+pdf = str(BASE / "ngs_digest_card.pdf")
 
 # PNG for Slack (downscaled to logical width; full-bleed Letter aspect)
 out = page.resize((W, int(round(page_h / SS))), Image.LANCZOS)
