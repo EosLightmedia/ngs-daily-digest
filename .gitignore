@@ -5,3 +5,7 @@ venv/
 service_account.json
 *.local
 .DS_Store
+
+# Generated digest images (regenerated from make_digest_*.py)
+*.png
+*.pdf
