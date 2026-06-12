@@ -51,14 +51,32 @@ def _client():
     return gspread.service_account()
 
 
+def _detect_header_row(values: list[list[str]]) -> int:
+    """Return the 0-based index of the header row, found by its column names so
+    it survives the sheet being shifted up/down (rows inserted above it).
+
+    The header is the row carrying the canonical labels; we match on a few that
+    are always present (Date/Start/Type). Falls back to config.HEADER_ROW.
+    """
+    want = {config.COL_DATE.lower(), config.COL_START.lower(), config.COL_TYPE.lower()}
+    for idx, row in enumerate(values):
+        if want.issubset({c.strip().lower() for c in row}):
+            return idx
+    return config.HEADER_ROW - 1
+
+
 def load_rows() -> tuple[list[str], list[list[str]]]:
-    """Return (header, data_rows) where data_rows are the rows BELOW the header."""
+    """Return (header, data_rows) where data_rows are the rows BELOW the header.
+
+    The header row is located by its column names rather than a fixed row
+    number, so inserting/removing rows above it won't break column resolution.
+    config.HEADER_ROW is only a fallback hint.
+    """
     gc = _client()
     ws = gc.open_by_key(config.SHEET_KEY).worksheet(config.SCHEDULE_TAB)
     values = ws.get_all_values()
-    header = values[config.HEADER_ROW - 1]
-    data = values[config.HEADER_ROW:]
-    return header, data
+    h = _detect_header_row(values)
+    return values[h], values[h + 1:]
 
 
 # --------------------------------------------------------------------------- #
