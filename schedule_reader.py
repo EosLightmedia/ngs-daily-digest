@@ -14,8 +14,6 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
-import gspread
-
 import config
 
 WEEKDAYS = {d.lower() for d in calendar.day_name}            # monday..sunday
@@ -39,12 +37,14 @@ class DayBlock:
 # --------------------------------------------------------------------------- #
 # Sheet access
 # --------------------------------------------------------------------------- #
-def _client() -> gspread.Client:
-    """Authorise gspread.
+def _client():
+    """Authorise gspread (imported lazily so parsing works without it/creds).
 
     In CI the full service-account JSON is provided in GSPREAD_SERVICE_ACCOUNT;
     locally we fall back to the key at ~/.config/gspread/service_account.json.
     """
+    import gspread
+
     raw = os.environ.get("GSPREAD_SERVICE_ACCOUNT")
     if raw:
         return gspread.service_account_from_dict(json.loads(raw))
@@ -106,8 +106,8 @@ def parse_blocks(header: list[str], data: list[list[str]]) -> list[DayBlock]:
     """
     wanted = (
         config.COL_DATE, config.COL_START, config.COL_END, config.COL_LOCATION,
-        config.COL_ITEM, config.COL_NOTES, config.COL_TYPE, config.COL_DISCIPLINE,
-        config.COL_OWNER, config.COL_EOS_STAFF, config.COL_DRESS_CODE,
+        config.COL_ITEM, config.COL_NOTES, config.COL_TYPE, config.COL_OWNER,
+        config.COL_DRESS_CODE, *[h for h, _ in config.STAFF_FUNCTION_COLS],
     )
     cols = {}
     for name in wanted:
@@ -264,14 +264,72 @@ def group_consecutive_shows(block: DayBlock) -> list[dict]:
     return groups
 
 
-def staff_shifts(block: DayBlock) -> list[dict]:
-    """Return the staff-shift rows as {'item','span','people'} dicts."""
-    out = []
-    for r in rows_of_type(block, config.TYPE_STAFF_SHIFT):
-        names = [n.strip() for n in r[config.COL_EOS_STAFF].split(",") if n.strip()]
-        out.append({
-            "item": r[config.COL_ITEM],
-            "span": fmt_span(parse_time(r[config.COL_START]), parse_time(r[config.COL_END])),
-            "people": names,
-        })
+# A name cell can hold several people and an on-call/remote qualifier, e.g.
+# "Liam H, Danny M" · "Sean (On call)" · "Niko - On Call" · "Joe - Remote" ·
+# "Benjamin. James" (a stray period instead of a comma — seen in the sheet).
+_QUALIFIER_RE = re.compile(r"on[\s-]?call|remote|standby", re.IGNORECASE)
+# Split multiple people on comma, semicolon, or a period that precedes a name.
+_PEOPLE_SPLIT_RE = re.compile(r"[,;]|\.\s+(?=[A-Za-z])")
+
+
+def _parse_staff_cell(raw: str) -> list[tuple[str, str]]:
+    """Parse a staffing cell into [(name, qualifier)] pairs.
+
+    qualifier is "" normally, else a normalised tag ("on call" / "remote" /
+    "standby"). Surrounding parens/dashes around the qualifier are stripped from
+    the name so "Sean (On call)" -> ("Sean", "on call").
+    """
+    out: list[tuple[str, str]] = []
+    for part in _PEOPLE_SPLIT_RE.split(raw or ""):
+        part = part.strip()
+        if not part:
+            continue
+        m = _QUALIFIER_RE.search(part)
+        qualifier = ""
+        if m:
+            qualifier = re.sub(r"[\s-]+", " ", m.group(0).lower())  # "On-Call" -> "on call"
+            part = part[:m.start()] + part[m.end():]                # drop it from the name
+        name = part.strip(" -–—().").strip()
+        if name:
+            out.append((name, qualifier))
+    return out
+
+
+def crew_call(block: DayBlock) -> list[dict]:
+    """Per function/system, who is on it and their merged day-span.
+
+    Scans every staffing column (config.STAFF_FUNCTION_COLS) across the day's
+    rows. For each system, each person is collapsed to a SINGLE span — their
+    first call to their last out — sorted by call time. On-call/remote people
+    keep their real window and carry a qualifier tag.
+
+    Returns [{'label', 'people': [{'name','span','qualifier'}]}] in column order,
+    skipping systems with nobody on them.
+    """
+    out: list[dict] = []
+    for header_name, label in config.STAFF_FUNCTION_COLS:
+        agg: dict[str, dict] = {}  # name -> {'times': [...], 'qualifier': str}
+        for r in block.rows:
+            cell = r.get(header_name, "")
+            if not cell:
+                continue
+            bounds = [t for t in (parse_time(r[config.COL_START]),
+                                  parse_time(r[config.COL_END])) if t is not None]
+            for name, qualifier in _parse_staff_cell(cell):
+                a = agg.setdefault(name, {"times": [], "qualifier": ""})
+                a["times"].extend(bounds)
+                if qualifier:
+                    a["qualifier"] = qualifier
+        people = []
+        for name, a in agg.items():
+            times = a["times"]
+            people.append({
+                "name": name,
+                "span": fmt_span(min(times), max(times)) if times else "",
+                "qualifier": a["qualifier"],
+                "_sort": min(times) if times else 24 * 60 * 10,
+            })
+        people.sort(key=lambda p: (p["_sort"], p["name"]))
+        if people:
+            out.append({"label": label, "people": people})
     return out

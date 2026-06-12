@@ -32,7 +32,6 @@ TIMEZONE = os.environ.get("NGS_TIMEZONE", "America/New_York")
 TYPE_SPAN_MARKER = "Top/End of Day"     # grey rows that bound the day
 TYPE_SUPPORT = "Support Required"       # blue rows that need the team on-site
 TYPE_SHOW = "Show"                      # green rows
-TYPE_STAFF_SHIFT = "Eos staff shifts"   # yellow rows; people listed in "Eos Staff" col
 
 # --- Column header names (the canonical labels we expect in HEADER_ROW) ------
 COL_DATE = "Date"
@@ -42,7 +41,18 @@ COL_LOCATION = "Location"
 COL_ITEM = "Item"
 COL_NOTES = "Notes"
 COL_TYPE = "Type"
-COL_DISCIPLINE = "Discipline"
 COL_OWNER = "Owner"
-COL_EOS_STAFF = "Eos Staff"
 COL_DRESS_CODE = "Dress Code"
+
+# --- Crew staffing columns --------------------------------------------------
+# Staffing is no longer dedicated "shift" rows; instead each row carries the
+# people on each function/system in its own column. The digest scans these
+# across the day and reports, per system, who is on it and their day-span.
+# (header_name_in_sheet, display_label). Resolved by name; missing ones are
+# skipped, so reordering/renaming a system here is the only edit needed.
+STAFF_FUNCTION_COLS = [
+    ("Qsys", "Q-Sys"),
+    ("Pixera", "Pixera"),
+    ("Network", "Network"),
+    ("Tech", "Tech"),
+]

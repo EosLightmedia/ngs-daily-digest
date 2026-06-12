@@ -109,15 +109,18 @@ def build_blocks(block: sr.DayBlock, staff_map: dict[str, str] | None = None) ->
         lines.append("_Nothing scheduled today._")
     blocks.append(_section("\n".join(lines)))
 
-    # --- Event Support Staff (time/names only) ------------------------------
-    shifts = sr.staff_shifts(block)
-    if shifts:
-        lines = ["*🧑‍🔧  Event Support Staff*"]
-        for s in shifts:
-            people = render_people(s["people"], staff_map)
-            span_s = s["span"] or "Time TBD"
-            head = f"• *{s['item']}*  {span_s}" if s["item"] else f"• {span_s}"
-            lines.append(f"{head} — {people}" if people else head)
+    # --- Crew Call (who's on each system, and when) -------------------------
+    crew = sr.crew_call(block)
+    if crew:
+        lines = ["*🧑‍🔧  Crew Call*"]
+        for fn in crew:
+            people = []
+            for p in fn["people"]:
+                who = render_people([p["name"]], staff_map)
+                if p["qualifier"]:
+                    who += f" _({p['qualifier']})_"
+                people.append(f"{who} {p['span']}".strip())
+            lines.append(f"*{fn['label']}*: " + ", ".join(people))
         blocks.append(_section("\n".join(lines)))
 
     # --- Link to the sheet --------------------------------------------------

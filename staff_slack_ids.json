@@ -1,8 +1,13 @@
 {
-  "_comment": "Map the first-names used in the sheet's 'Eos Staff' column to Slack member IDs (U…). Member IDs are NOT secret. Unmapped names render as bold plain text instead of an @-mention. Find an ID via a user's Slack profile → 'Copy member ID'.",
+  "_comment": "Map the names used in the sheet's staffing columns (Qsys/Pixera/Network/Tech) to Slack member IDs (U…). Names must match the sheet exactly, including any initial (e.g. 'Liam H'). On-call/remote tags are stripped before lookup. Member IDs are NOT secret. Unmapped names render as bold plain text instead of an @-mention. 'Danny M' = Danny Mannherz and 'Sam' = Sam Slade are EXTERNAL (Slack Connect) collaborators — their IDs don't appear in the Eos directory; grabbed via profile → Copy member ID. Both resolved below. STILL UNRESOLVED: 'Keith' (Qsys, Jun 14) is not in the workspace — renders as bold text until an ID is added. Note: external @-mentions only notify once those users are members of the deploy channel.",
   "Oona": "U0831CJ4KK5",
-  "Danny": "U0A38A9UL21",
+  "Danny M": "U07HCSVMKJS",
   "James": "U05C6R252GL",
   "Rick": "U098MRQN5AQ",
-  "Benjamin": "U09PQPU0D7F"
+  "Benjamin": "U09PQPU0D7F",
+  "Liam H": "U08UE1QL7K8",
+  "Sean": "U081SEJNJ3A",
+  "Niko": "U096YVBTKRT",
+  "Joe": "U06NG03KM25",
+  "Sam": "U05FQNL6L4R"
 }

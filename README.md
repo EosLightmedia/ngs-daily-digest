@@ -7,7 +7,10 @@ schedule (June 9–19, 2026). Every morning at **7:00 AM ET** it reads the
 - ⏱️ **Day span** — from the grey `Top/End of Day` marker rows
 - 🔵 **Support Required** — the events that need the team on-site (time · location)
 - 🟢 **Shows** — consecutive show rows collapsed into one entry with a combined summary
-- 🟡 **On shift** — the day's Eos staff shifts, with people **@-mentioned**
+- 🧑‍🔧 **Crew Call** — per system (Q-Sys / Pixera / Network / Tech), who is on it and
+  their day-span (first call → last out), with people **@-mentioned** and
+  on-call/remote tagged. Spans are derived from the staffing columns across the
+  whole day — there are no longer dedicated shift rows.
 - 📋 a link back to the sheet for full detail
 
 It's a *summary* — people open the sheet for the run-of-show.
@@ -49,8 +52,9 @@ import scan hits a TCC permission error under `~/Desktop`.)
 4. Invite the bot to the channel: `/invite @NGS Digest` in `#` (`C0B9YCS6ALR`).
 
 ### 2. Staff @-mentions
-Fill `staff_slack_ids.json` with member IDs (Slack profile → **Copy member ID**)
-for: Oona, Danny, James, Rick, Benjamin. Unmapped names post as bold text.
+Fill `staff_slack_ids.json` with member IDs (Slack profile → **Copy member ID**).
+Keys must match the names in the sheet's staffing columns exactly, including any
+initial (e.g. `Liam H`, `Danny M`). Unmapped names post as bold text.
 
 ### 3. GitHub (EosLightmedia org, private repo)
 ```bash
