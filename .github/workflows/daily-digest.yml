@@ -2,15 +2,16 @@ name: NGS Daily Digest
 
 on:
   schedule:
-    # 11:00 UTC = 7:00 AM EDT (the event runs in June, so Eastern is on DST).
-    - cron: "0 11 * * *"
+    # 21:00 UTC = 5:00 PM EDT (event runs in June, so Eastern is on DST).
+    # Posts the NEXT day's digest the evening before.
+    - cron: "0 21 * * *"
   workflow_dispatch:
     inputs:
       date:
-        description: "Optional YYYY-MM-DD to report (default: today)"
+        description: "Optional YYYY-MM-DD to report (default: tomorrow)"
         required: false
       dry_run:
-        description: "Print blocks instead of posting"
+        description: "Render + print caption, post nothing"
         type: boolean
         default: false
 
@@ -33,6 +34,9 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID || 'C0B9YCS6ALR' }}
         run: |
-          python digest.py \
-            ${{ inputs.date && format('--date {0}', inputs.date) || '' }} \
-            ${{ inputs.dry_run && '--dry-run' || '' }}
+          # Default to tomorrow (the evening-before post). At 21:00 UTC the UTC
+          # date matches Eastern, so UTC +1 day == Eastern's tomorrow.
+          TARGET="${{ inputs.date }}"
+          if [ -z "$TARGET" ]; then TARGET="$(date -u -d 'tomorrow' +%F)"; fi
+          echo "Target date: $TARGET"
+          python digest.py --date "$TARGET" ${{ inputs.dry_run && '--dry-run' || '' }}
