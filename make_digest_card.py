@@ -25,7 +25,8 @@ FOOTER = "Full detail in the production schedule."
 S = 2  # supersample
 W = 1240
 PAD = 70 * S
-AVENIR = "/System/Library/Fonts/Avenir Next.ttc"
+KARLA_REG  = "/Users/oonacurley/Library/Fonts/Karla-Regular.ttf"
+KARLA_BOLD = "/Users/oonacurley/Library/Fonts/Karla-Bold.ttf"
 
 NAVY_T = (11, 16, 32)
 NAVY_B = (23, 31, 56)
@@ -36,15 +37,15 @@ LINE = (224, 230, 240)
 BG = (247, 249, 252)
 BLUE = (43, 132, 222)
 
-def F(sz, kind=0):
-    return ImageFont.truetype(AVENIR, sz * S, index=kind)
+def F(sz, bold=False):
+    return ImageFont.truetype(KARLA_BOLD if bold else KARLA_REG, sz * S)
 
-f_kick   = F(26)
-f_title  = F(64)
-f_h      = F(30)
-f_label  = F(26)
+f_kick   = F(26, bold=True)
+f_title  = F(64, bold=True)
+f_h      = F(30, bold=True)
+f_label  = F(26, bold=True)
 f_body   = F(30)
-f_role   = F(28)
+f_role   = F(28, bold=True)
 f_small  = F(24)
 
 w = W * S

@@ -40,10 +40,11 @@ d.rectangle([bar_x, int(h * 0.30), bar_x + 10 * SUPER, int(h * 0.72)], fill="#4f
 def font(path, size):
     return ImageFont.truetype(path, size * SUPER)
 
-AVENIR = "/System/Library/Fonts/Avenir Next.ttc"
-f_kicker = font(AVENIR, 30)
-f_title = font(AVENIR, 96)
-f_date = font(AVENIR, 34)
+KARLA_REG  = "/Users/oonacurley/Library/Fonts/Karla-Regular.ttf"
+KARLA_BOLD = "/Users/oonacurley/Library/Fonts/Karla-Bold.ttf"
+f_kicker = font(KARLA_BOLD, 30)
+f_title = font(KARLA_BOLD, 96)
+f_date = font(KARLA_REG, 34)
 
 tx = bar_x + 34 * SUPER
 
