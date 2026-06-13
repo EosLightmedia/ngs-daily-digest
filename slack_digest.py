@@ -54,6 +54,8 @@ def crew_mentions(block: sr.DayBlock, staff_map: dict[str, str] | None = None) -
     """@-mention every person called on any system today (de-duped, in order)."""
     names: list[str] = []
     for fn in sr.crew_call(block):
+        if fn["label"] not in config.CREW_TAG_LABELS:
+            continue  # Site Team / Management show in the grid but aren't tagged
         for p in fn["people"]:
             if p["name"] not in names:
                 names.append(p["name"])

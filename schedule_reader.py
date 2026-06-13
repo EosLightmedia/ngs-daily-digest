@@ -321,26 +321,35 @@ def crew_call(block: DayBlock) -> list[dict]:
     first call to their last out — sorted by call time. On-call/remote people
     keep their real window and carry a qualifier tag.
 
+    Shift staffing: if a person appears in any Shift-type row, their span is
+    taken from those shift rows ALONE (their event-row tags don't extend it),
+    so shift-staffed coverage reflects the shift window, not every event they
+    happen to be tagged on.
+
     Returns [{'label', 'people': [{'name','span','qualifier'}]}] in column order,
     skipping systems with nobody on them.
     """
     out: list[dict] = []
     for header_name, label in config.STAFF_FUNCTION_COLS:
-        agg: dict[str, dict] = {}  # name -> {'times': [...], 'qualifier': str}
+        agg: dict[str, dict] = {}  # name -> {times, shift_times, qualifier}
         for r in block.rows:
             cell = r.get(header_name, "")
             if not cell:
                 continue
             bounds = [t for t in (parse_time(r[config.COL_START]),
                                   parse_time(r[config.COL_END])) if t is not None]
+            is_shift = _type_matches(r, config.TYPE_SHIFT)
             for name, qualifier in _parse_staff_cell(cell):
-                a = agg.setdefault(name, {"times": [], "qualifier": ""})
+                a = agg.setdefault(name, {"times": [], "shift_times": [], "qualifier": ""})
                 a["times"].extend(bounds)
+                if is_shift:
+                    a["shift_times"].extend(bounds)
                 if qualifier:
                     a["qualifier"] = qualifier
         people = []
         for name, a in agg.items():
-            times = a["times"]
+            # A shift row, if present, defines the window; else merge all rows.
+            times = a["shift_times"] or a["times"]
             people.append({
                 "name": name,
                 "span": fmt_span(min(times), max(times)) if times else "",

@@ -32,6 +32,9 @@ TIMEZONE = os.environ.get("NGS_TIMEZONE", "America/New_York")
 TYPE_SPAN_MARKER = "Top/End of Day"     # grey rows that bound the day
 TYPE_SUPPORT = "Support Required"       # blue rows that need the team on-site
 TYPE_SHOW = "Show"                      # green rows
+TYPE_SHIFT = "Shift"                    # tech-coverage shifts: hidden from the
+                                        # line-by-line agenda; a shift row defines
+                                        # that person's Crew Call window
 
 # --- Column header names (the canonical labels we expect in HEADER_ROW) ------
 COL_DATE = "Date"
@@ -55,4 +58,11 @@ STAFF_FUNCTION_COLS = [
     ("Pixera", "Pixera"),
     ("Network", "Network"),
     ("Tech", "Tech"),
+    ("Site Team", "Site Team"),
+    ("Management", "Management"),
 ]
+
+# Functions whose people are @-tagged in the "Crew called:" caption line. The
+# others (Site Team, Management) still render in the Crew Call grid for
+# reference, but aren't auto-tagged — Management is covered by the CC list.
+CREW_TAG_LABELS = {"Q-Sys", "Pixera", "Network", "Tech"}

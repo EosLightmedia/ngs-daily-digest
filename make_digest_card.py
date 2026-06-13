@@ -52,8 +52,9 @@ TITLE_DATE = f"{block.weekday}, {calendar.month_name[block.date.month]} {block.d
 HEADLINE = block.label or block.banner
 SPAN = sr.event_span(block)
 
-# Every row except the day-bounding markers and breaks, in time order.
-EXCLUDE = {config.TYPE_SPAN_MARKER.lower(), "break"}
+# Every row except day-bounding markers, breaks, and shift rows, in time order.
+# (Shift rows staff Crew Call but don't belong in the line-by-line agenda.)
+EXCLUDE = {config.TYPE_SPAN_MARKER.lower(), "break", config.TYPE_SHIFT.lower()}
 
 def kind_of(type_value: str) -> str:
     tl = type_value.strip().lower()
@@ -140,8 +141,11 @@ def render(K):
     f_body_b = F(30, bold=True)
     f_role   = F(28, bold=True)
     f_time   = F(26)
-    f_time_b = F(23, bold=True)
+    f_time_b = F(21, bold=True)
     f_small  = F(24)
+    f_crew_h = F(22, bold=True)   # crew stripe: function label
+    f_crew   = F(23, bold=True)   # crew stripe: person name
+    f_chip   = F(19, bold=True)   # crew stripe: compact call-time chip
 
     PAD = 70 * S
     HEADER_H = I(230 * S)
@@ -214,31 +218,37 @@ def render(K):
             lines.append(cur)
         return lines or [""]
 
-    # ---- crew call (top): one column per function, people stacked beneath ----
+    # ---- crew call (top): a single staffing stripe — every function in one row,
+    #      people stacked beneath each, with compact call-time chips. ----
+    def compact_time(span):
+        # "9:00 AM – 4:00 PM" -> "9a–4p" ; "7:30 PM – 8:30 PM" -> "7:30p–8:30p"
+        return (span.replace(":00", "").replace(" AM", "a").replace(" PM", "p")
+                    .replace(" – ", "–")) or "TBD"
+
     if CREW_BY_FN:
         y = section_title(y, "Crew Call")
-        cols = len(CREW_BY_FN)              # always 4
+        cols = len(CREW_BY_FN)            # all systems on one stripe
         col_w = (w - 2*PAD) / cols
+        head_h = 36*S
+        person_h = 62*S
         crew_top = y
-        head_h = 48*S
-        person_h = 92*S
-        max_people = max((len(p) for _, p in CREW_BY_FN), default=0)
+        max_people = max((len(p) for _, p in CREW_BY_FN), default=1)
         for ci, (label, people) in enumerate(CREW_BY_FN):
             x = PAD + ci * col_w
-            d.text((x, crew_top), label, font=f_role, fill=TEAL)
+            d.text((x, crew_top), label, font=f_crew_h, fill=TEAL)
             py = crew_top + head_h
             if not people:
-                d.text((x, py), "—", font=f_body, fill=SUB)
+                d.text((x, py), "—", font=f_crew, fill=SUB)
                 continue
             for name, time in people:
-                d.text((x, py), name, font=f_body_b, fill=INK)
-                ct = time or "TBD"
-                tw = d.textlength(ct, font=f_time_b)
-                d.rounded_rectangle([x, py+38*S, x + tw + 26*S, py+38*S + 38*S],
-                                    radius=10*S, fill=CHIP_BG)
-                d.text((x + 13*S, py+45*S), ct, font=f_time_b, fill=CHIP_INK)
+                d.text((x, py), name, font=f_crew, fill=INK)
+                ct = compact_time(time)
+                tw = d.textlength(ct, font=f_chip)
+                d.rounded_rectangle([x, py+28*S, x + tw + 16*S, py+28*S + 26*S],
+                                    radius=7*S, fill=CHIP_BG)
+                d.text((x + 8*S, py+31*S), ct, font=f_chip, fill=CHIP_INK)
                 py += person_h
-        y = crew_top + head_h + max(1, max_people) * person_h + 18*S
+        y = crew_top + head_h + max(1, max_people) * person_h + 14*S
         d.line([(PAD, y), (w - PAD, y)], fill=LINE, width=max(1, I(2*S)))
         y += 44*S
 
