@@ -354,6 +354,7 @@ def crew_call(block: DayBlock) -> list[dict]:
                 "name": name,
                 "span": fmt_span(min(times), max(times)) if times else "",
                 "qualifier": a["qualifier"],
+                "shift": bool(a["shift_times"]),   # staffed via a Shift row
                 "_sort": min(times) if times else 24 * 60 * 10,
             })
         people.sort(key=lambda p: (p["_sort"], p["name"]))

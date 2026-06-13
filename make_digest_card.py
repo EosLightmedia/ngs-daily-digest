@@ -85,7 +85,8 @@ EVENTS.sort(key=lambda e: (e["_sort"], e["item"]))
 _crew_groups = {fn["label"]: fn["people"] for fn in sr.crew_call(block)}
 CREW_BY_FN = []
 for _hdr, _label in config.STAFF_FUNCTION_COLS:
-    people = [(p["name"] + (f" ({p['qualifier']})" if p["qualifier"] else ""), p["span"])
+    people = [(p["name"] + (f" ({p['qualifier']})" if p["qualifier"] else ""),
+               p["span"], p.get("shift", False))
               for p in _crew_groups.get(_label, [])]
     CREW_BY_FN.append((_label, people))
 
@@ -121,6 +122,7 @@ GREEN_BG = (230, 247, 238)
 DOT_GREY = (184, 193, 207)
 CHIP_BG  = (255, 238, 184)   # warm gold chip for call times
 CHIP_INK = (92, 70, 0)       # dark gold text on the chip
+SHIFT_BG = (255, 249, 214)   # pale yellow highlight behind Eos staff shifts
 PILL_BG  = (233, 246, 249)
 
 
@@ -240,7 +242,10 @@ def render(K):
             if not people:
                 d.text((x, py), "—", font=f_crew, fill=SUB)
                 continue
-            for name, time in people:
+            for name, time, is_shift in people:
+                if is_shift:   # Eos staff shift — pale-yellow highlight
+                    d.rounded_rectangle([x - 8*S, py - 3*S, x + col_w - 14*S, py + 57*S],
+                                        radius=8*S, fill=SHIFT_BG)
                 d.text((x, py), name, font=f_crew, fill=INK)
                 ct = compact_time(time)
                 tw = d.textlength(ct, font=f_chip)

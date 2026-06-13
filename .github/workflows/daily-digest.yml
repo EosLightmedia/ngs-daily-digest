@@ -5,6 +5,10 @@ on:
     # 21:00 UTC = 5:00 PM EDT (event runs in June, so Eastern is on DST).
     # Posts the NEXT day's digest the evening before.
     - cron: "0 21 * * *"
+    # One-time extra send: 01:00 UTC Jun 14 = 9:00 PM EDT Jun 13 (re-post Jun 14's
+    # card after late updates). Re-fires Jun 14 next year, but the digest skips
+    # days with no schedule block, so it self-cleans.
+    - cron: "0 1 14 6 *"
   workflow_dispatch:
     inputs:
       date:
@@ -34,9 +38,10 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID || 'C0B9YCS6ALR' }}
         run: |
-          # Default to tomorrow (the evening-before post). At 21:00 UTC the UTC
-          # date matches Eastern, so UTC +1 day == Eastern's tomorrow.
+          # Default to tomorrow in Eastern (the evening-before post). Computed in
+          # America/New_York so it's correct whether the run fires before or after
+          # 00:00 UTC (e.g. the 5 PM and the 9 PM ET triggers).
           TARGET="${{ inputs.date }}"
-          if [ -z "$TARGET" ]; then TARGET="$(date -u -d 'tomorrow' +%F)"; fi
+          if [ -z "$TARGET" ]; then TARGET="$(TZ='America/New_York' date -d 'tomorrow' +%F)"; fi
           echo "Target date: $TARGET"
           python digest.py --date "$TARGET" ${{ inputs.dry_run && '--dry-run' || '' }}
