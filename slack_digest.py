@@ -9,8 +9,9 @@ from __future__ import annotations
 import calendar
 import json
 import os
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import config
 import schedule_reader as sr
@@ -68,8 +69,7 @@ def build_image_caption(block: sr.DayBlock, staff_map: dict[str, str] | None = N
     lines: list[str] = []
     if note:
         lines.append(f"*{note}*")
-    # The digest posts the evening before, so the card is tomorrow's day.
-    lines.append(f"*🗓️  Tomorrow’s Schedule — {_title(block)}*")
+    lines.append(f"*🗓️  {_schedule_heading(block)}*")
     crew = crew_mentions(block, staff_map)
     lines.append(f"Crew called: {crew}" if crew else "Crew called: _nobody scheduled_")
     cc = ", ".join(f"<@{sid}>" for sid in _load_cc().values())
@@ -98,6 +98,18 @@ def _title(block: sr.DayBlock) -> str:
     if block.date:
         return f"{block.weekday}, {calendar.month_name[block.date.month]} {block.date.day}"
     return block.banner
+
+
+def _schedule_heading(block: sr.DayBlock) -> str:
+    """'Tomorrow's/Today's Schedule — <date>' when the block is the day after /
+    of the run date (the scheduled evening-before post), else a plain dated
+    'Schedule — <date>' so a manual back/forward-dated send reads correctly."""
+    rel = "Schedule"
+    if block.date:
+        today = datetime.now(ZoneInfo(config.TIMEZONE)).date()
+        delta = (block.date - today).days
+        rel = {1: "Tomorrow’s Schedule", 0: "Today’s Schedule"}.get(delta, "Schedule")
+    return f"{rel} — {_title(block)}"
 
 
 # --------------------------------------------------------------------------- #
