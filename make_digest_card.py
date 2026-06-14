@@ -135,6 +135,7 @@ def render(K):
 
     f_kick   = F(26, bold=True)
     f_title  = F(64, bold=True)
+    f_contact = F(20)             # header footer: event-coordinator contact line
     f_h      = F(30, bold=True)
     f_label  = F(26, bold=True)
     f_body   = F(30)
@@ -177,6 +178,9 @@ def render(K):
     tx = PAD + logo_h + 40*S
     d.text((tx, 66*S), "NGS DAILY DIGEST", font=f_kick, fill=GOLD)
     d.text((tx, 100*S), TITLE_DATE, font=f_title, fill=(255, 255, 255))
+    # contact line pinned to the bottom of the header band, under the date
+    d.text((tx, HEADER_H - 44*S), "Event Coordinator: Oona Curley  |  646.819.1667",
+           font=f_contact, fill=(230, 235, 244))
 
     # Eos Lightmedia logo (vertical) on the gold side
     eos = Image.open(EOS_LOGO_PATH).convert("RGBA")

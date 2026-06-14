@@ -68,6 +68,8 @@ def build_image_caption(block: sr.DayBlock, staff_map: dict[str, str] | None = N
     lines: list[str] = []
     if note:
         lines.append(f"*{note}*")
+    # The digest posts the evening before, so the card is tomorrow's day.
+    lines.append(f"*🗓️  Tomorrow’s Schedule — {_title(block)}*")
     crew = crew_mentions(block, staff_map)
     lines.append(f"Crew called: {crew}" if crew else "Crew called: _nobody scheduled_")
     cc = ", ".join(f"<@{sid}>" for sid in _load_cc().values())
