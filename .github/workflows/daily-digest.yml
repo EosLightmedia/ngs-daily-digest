@@ -5,10 +5,10 @@ on:
     # 21:00 UTC = 5:00 PM EDT (event runs in June, so Eastern is on DST).
     # Posts the NEXT day's digest the evening before.
     - cron: "0 21 * * *"
-    # One-time extra send: 01:00 UTC Jun 14 = 9:00 PM EDT Jun 13 (re-post Jun 14's
+    # One-time extra send: 01:30 UTC Jun 14 = 9:30 PM EDT Jun 13 (re-post Jun 14's
     # card after late updates). Re-fires Jun 14 next year, but the digest skips
     # days with no schedule block, so it self-cleans.
-    - cron: "0 1 14 6 *"
+    - cron: "30 1 14 6 *"
   workflow_dispatch:
     inputs:
       date:
