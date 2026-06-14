@@ -62,10 +62,14 @@ def crew_mentions(block: sr.DayBlock, staff_map: dict[str, str] | None = None) -
     return render_people(names, staff_map)
 
 
-def build_image_caption(block: sr.DayBlock, staff_map: dict[str, str] | None = None) -> str:
-    """Two-line caption that accompanies the day's image: who's called + CC."""
+def build_image_caption(block: sr.DayBlock, staff_map: dict[str, str] | None = None,
+                        note: str | None = None) -> str:
+    """Caption that accompanies the day's image: optional note + who's called + CC."""
+    lines: list[str] = []
+    if note:
+        lines.append(f"*{note}*")
     crew = crew_mentions(block, staff_map)
-    lines = [f"Crew called: {crew}" if crew else "Crew called: _nobody scheduled_"]
+    lines.append(f"Crew called: {crew}" if crew else "Crew called: _nobody scheduled_")
     cc = ", ".join(f"<@{sid}>" for sid in _load_cc().values())
     if cc:
         lines.append(f"CC: {cc}")

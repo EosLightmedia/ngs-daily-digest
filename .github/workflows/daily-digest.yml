@@ -18,6 +18,9 @@ on:
         description: "Render + print caption, post nothing"
         type: boolean
         default: false
+      note:
+        description: "Optional bold note prepended to the caption (e.g. UPDATED)"
+        required: false
 
 jobs:
   digest:
@@ -43,5 +46,14 @@ jobs:
           # 00:00 UTC (e.g. the 5 PM and the 9 PM ET triggers).
           TARGET="${{ inputs.date }}"
           if [ -z "$TARGET" ]; then TARGET="$(TZ='America/New_York' date -d 'tomorrow' +%F)"; fi
-          echo "Target date: $TARGET"
-          python digest.py --date "$TARGET" ${{ inputs.dry_run && '--dry-run' || '' }}
+          # Any scheduled run other than the daily 5 PM cron is an extra/one-time
+          # send -> mark it "UPDATED" (time-agnostic, so changing the one-time
+          # cron's hour won't break this). A manual note input overrides.
+          NOTE_FLAG=""
+          if [ -n "${{ inputs.note }}" ]; then
+            NOTE_FLAG="--note ${{ inputs.note }}"
+          elif [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" != "0 21 * * *" ]; then
+            NOTE_FLAG="--note UPDATED"
+          fi
+          echo "Target date: $TARGET   note: ${NOTE_FLAG:-(none)}"
+          python digest.py --date "$TARGET" $NOTE_FLAG ${{ inputs.dry_run && '--dry-run' || '' }}

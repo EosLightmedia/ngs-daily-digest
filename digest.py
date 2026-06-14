@@ -51,6 +51,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Post the NGS daily digest image to Slack.")
     ap.add_argument("--date", help="YYYY-MM-DD to report (default: today in event timezone)")
     ap.add_argument("--channel", default=config.SLACK_CHANNEL_ID, help="Slack channel ID")
+    ap.add_argument("--note", help="optional bold note prepended to the caption (e.g. UPDATED)")
     ap.add_argument("--dry-run", action="store_true", help="render + print caption, post nothing")
     args = ap.parse_args()
 
@@ -61,7 +62,7 @@ def main() -> int:
         print(f"No schedule block for {target.isoformat()} — outside event window. Skipping.")
         return 0
 
-    caption = slack_digest.build_image_caption(block)
+    caption = slack_digest.build_image_caption(block, note=args.note)
     title = f"NGS Daily Digest — {block.weekday}, {target:%b %-d}"
 
     if args.dry_run:
