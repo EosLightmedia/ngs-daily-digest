@@ -230,7 +230,7 @@ def render(K):
                     .replace(" – ", "–")) or "TBD"
 
     if CREW_BY_FN:
-        y = section_title(y, "Crew Call")
+        y = section_title(y, "Crew Coverage")
         cols = len(CREW_BY_FN)            # all systems on one stripe
         col_w = (w - 2*PAD) / cols
         head_h = 36*S

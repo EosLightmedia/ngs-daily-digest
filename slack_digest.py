@@ -163,7 +163,7 @@ def build_blocks(block: sr.DayBlock, staff_map: dict[str, str] | None = None) ->
     # --- Crew Call (who's on each system, and when) -------------------------
     crew = sr.crew_call(block)
     if crew:
-        lines = ["*🧑‍🔧  Crew Call*"]
+        lines = ["*🧑‍🔧  Crew Coverage*"]
         for fn in crew:
             people = []
             for p in fn["people"]:
