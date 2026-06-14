@@ -71,7 +71,7 @@ def build_image_caption(block: sr.DayBlock, staff_map: dict[str, str] | None = N
         lines.append(f"*{note}*")
     lines.append(f"*🗓️  {_schedule_heading(block)}*")
     crew = crew_mentions(block, staff_map)
-    lines.append(f"Crew called: {crew}" if crew else "Crew called: _nobody scheduled_")
+    lines.append(f"Crew Coverage: {crew}" if crew else "Crew Coverage: _nobody scheduled_")
     cc = ", ".join(f"<@{sid}>" for sid in _load_cc().values())
     if cc:
         lines.append(f"CC: {cc}")
