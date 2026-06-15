@@ -173,12 +173,20 @@ def find_block(blocks: list[DayBlock], target: date) -> DayBlock | None:
 # --------------------------------------------------------------------------- #
 _TIME_RE = re.compile(r"(\d{1,2}):(\d{2})\s*([ap])\.?m\.?", re.IGNORECASE)
 
+# Times at or after this hour are treated as a normal early-morning start (e.g.
+# a 5 AM load-in/start-up); times BEFORE it are read as after-midnight ends
+# (1–2 AM tear-downs, "End of Day" markers) and pushed past 24h so they sort to
+# the END of their day. The threshold sits in the dead-of-night gap between the
+# latest overnight end (~2 AM) and the earliest real day start (~5 AM).
+_OVERNIGHT_CUTOFF_HOUR = 3
+
 
 def parse_time(raw: str) -> int | None:
     """Parse '6:00 AM' to minutes since midnight. Returns None for blank/TBD.
 
-    '(next day)' (or any time before 6 AM) is treated as after-midnight and
-    pushed past 24h so it sorts to the END of its day rather than the start.
+    '(next day)', or any time before _OVERNIGHT_CUTOFF_HOUR, is treated as
+    after-midnight and pushed past 24h so it sorts to the END of its day rather
+    than the start. Early-morning starts (5/6/7 AM) sort to the start as normal.
     """
     if not raw:
         return None
@@ -191,7 +199,7 @@ def parse_time(raw: str) -> int | None:
     if ap == "a" and hour == 12:
         hour = 0
     minutes = hour * 60 + minute
-    if "next day" in raw.lower() or minutes < 6 * 60:
+    if "next day" in raw.lower() or minutes < _OVERNIGHT_CUTOFF_HOUR * 60:
         minutes += 24 * 60
     return minutes
 
