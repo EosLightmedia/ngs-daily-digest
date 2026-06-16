@@ -320,14 +320,23 @@ def render(K):
 # --------------------------------------------------------------------------- #
 # Fit to one full-bleed Letter page
 # --------------------------------------------------------------------------- #
-K = 1.0
-img, cb = render(K)
-# Only ever shrink: scale down until the content fits one page height.
-for _ in range(8):
+# Pick the LARGEST scale whose content still fits one page height, so the day
+# fills the page instead of leaving slack at the bottom. Content height is
+# non-linear in K (text re-wraps as type resizes), so we binary-search for the
+# fit rather than assume proportionality — the old proportional shrink overshot
+# and left ~20% of the page empty even while type was scaled well below natural
+# size. K_MAX caps growth so a near-empty schedule doesn't balloon the type.
+K_MIN, K_MAX = 0.2, 1.6
+lo, hi = K_MIN, K_MAX
+for _ in range(16):
+    K = (lo + hi) / 2
+    _, cb = render(K)
     if cb <= TARGET_H:
-        break
-    K *= (TARGET_H / cb) * 0.99   # slight undershoot; wrapping eases as type shrinks
-    img, cb = render(K)
+        lo = K
+    else:
+        hi = K
+K = lo
+img, cb = render(K)
 
 page_h = int(round(TARGET_H))
 page = Image.new("RGB", (w, page_h), BG)
