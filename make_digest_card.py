@@ -3,7 +3,7 @@
 
 Reads the live production schedule (same source as the Slack digest) and lays
 out every event for the day — except Top/End of Day markers and Breaks — as a
-chronological list, with Crew Call up top. Support Required and Show rows stay
+chronological list, with Crew Call up top. Support and Show rows stay
 visually prominent (tinted row + coloured dot + bold), matching the 🔵/🟢
 convention in Slack.
 

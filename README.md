@@ -5,7 +5,7 @@ schedule (June 9–19, 2026). Every morning at **7:00 AM ET** it reads the
 `Explorers_Fest_Production_Schedule` Google Sheet and posts a summary to Slack:
 
 - ⏱️ **Day span** — from the grey `Top/End of Day` marker rows
-- 🔵 **Support Required** — the events that need the team on-site (time · location)
+- 🔵 **Support** — the events that need the team on-site (time · location)
 - 🟢 **Shows** — consecutive show rows collapsed into one entry with a combined summary
 - 🧑‍🔧 **Crew Call** — per system (Q-Sys / Pixera / Network / Tech), who is on it and
   their day-span (first call → last out), with people **@-mentioned** and

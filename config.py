@@ -30,7 +30,7 @@ TIMEZONE = os.environ.get("NGS_TIMEZONE", "America/New_York")
 # --- Type values that drive each section ------------------------------------
 # Compared case-insensitively against the live Type column.
 TYPE_SPAN_MARKER = "Top/End of Day"     # grey rows that bound the day
-TYPE_SUPPORT = "Support Required"       # blue rows that need the team on-site
+TYPE_SUPPORT = "Support"                # blue rows that need the team on-site
 TYPE_SHOW = "Show"                      # green rows
 TYPE_SHIFT = "Shift"                    # tech-coverage shifts: hidden from the
                                         # line-by-line agenda; a shift row defines

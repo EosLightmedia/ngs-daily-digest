@@ -138,7 +138,7 @@ def build_blocks(block: sr.DayBlock, staff_map: dict[str, str] | None = None) ->
     show_groups = sr.group_consecutive_shows(block)
 
     if support:
-        lines.append(("\n" if lines else "") + "🔵  *Support Required*")
+        lines.append(("\n" if lines else "") + "🔵  *Support*")
         for r in support:
             span_s = sr.fmt_span(sr.parse_time(r[config.COL_START]), sr.parse_time(r[config.COL_END]))
             loc = r[config.COL_LOCATION]
