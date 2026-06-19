@@ -173,26 +173,36 @@ def render(K):
     logo_h = I(150 * S)
     logo = Image.open(LOGO_PATH).convert("RGBA").resize((logo_h, logo_h), Image.LANCZOS)
     img.paste(logo, (I(PAD), (HEADER_H - logo_h)//2), logo)
-    d = ImageDraw.Draw(img)
 
-    tx = PAD + logo_h + 40*S
-    d.text((tx, 66*S), "NGS DAILY DIGEST", font=f_kick, fill=GOLD)
-    d.text((tx, 100*S), TITLE_DATE, font=f_title, fill=(255, 255, 255))
-    # contact line pinned to the bottom of the header band, under the date
-    d.text((tx, HEADER_H - 44*S), "Event Coordinator: Oona Curley  |  646.819.1667",
-           font=f_contact, fill=(230, 235, 244))
-
-    # Eos Lightmedia logo (vertical) on the gold side
+    # Eos Lightmedia logo (vertical) on the gold side — placed first so the date
+    # can be clamped to its left edge and never collide with it.
     eos = Image.open(EOS_LOGO_PATH).convert("RGBA")
     eos_h = I(168 * S)
     eos_w = I(eos.width * eos_h / eos.height)
     eos = eos.resize((eos_w, eos_h), Image.LANCZOS)
-    img.paste(eos, (w - I(PAD) - eos_w, (HEADER_H - eos_h)//2), eos)
+    eos_x = w - I(PAD) - eos_w
+    img.paste(eos, (eos_x, (HEADER_H - eos_h)//2), eos)
     d = ImageDraw.Draw(img)
 
+    tx = PAD + logo_h + 40*S
+    d.text((tx, 66*S), "NGS DAILY DIGEST", font=f_kick, fill=GOLD)
+    # Shrink the date so it fits the gap between the kicker and the Eos logo
+    # (big-type, few-event days would otherwise run the date under the logo).
+    tf, tsz = f_title, 64
+    title_max = eos_x - tx - 30*S
+    while tsz > 28 and d.textlength(TITLE_DATE, font=tf) > title_max:
+        tsz -= 2; tf = F(tsz, bold=True)
+    d.text((tx, 100*S), TITLE_DATE, font=tf, fill=(255, 255, 255))
+    # contact line pinned to the bottom of the header band, under the date
+    d.text((tx, HEADER_H - 44*S), "Event Coordinator: Oona Curley  |  646.819.1667",
+           font=f_contact, fill=(230, 235, 244))
+
     # ---- headline + span pill (same row; pill right-aligned) ----
+    # Lay out the pill first so the day label can be clamped to the space left
+    # of it (otherwise a long label + big type overruns the pill).
     y = HEADER_H + 44*S
-    d.text((PAD, y), HEADLINE, font=f_h, fill=INK)
+    head_max = w - 2*PAD
+    pill = pill_x = pill_y = pill_w = ph = None
     if SPAN:
         pill = f"Span of Day   {SPAN}"
         bb = d.textbbox((0, 0), pill, font=f_label)
@@ -200,6 +210,18 @@ def render(K):
         pill_w = pw + 56*S
         pill_x = w - PAD - pill_w
         pill_y = y - 8*S
+        head_max = pill_x - PAD - 30*S
+    # Shrink the day label to fit, then ellipsize if still too long.
+    hf, hsz = f_h, 30
+    while hsz > 15 and d.textlength(HEADLINE, font=hf) > head_max:
+        hsz -= 1; hf = F(hsz, bold=True)
+    htext = HEADLINE
+    if d.textlength(htext, font=hf) > head_max:
+        while htext and d.textlength(htext + "…", font=hf) > head_max:
+            htext = htext[:-1]
+        htext = (htext + "…") if htext else HEADLINE
+    d.text((PAD, y), htext, font=hf, fill=INK)
+    if SPAN:
         d.rounded_rectangle([pill_x, pill_y, pill_x + pill_w, pill_y + ph + 30*S],
                             radius=22*S, fill=PILL_BG)
         d.text((pill_x + 28*S, pill_y + 13*S), pill, font=f_label, fill=TEAL)
