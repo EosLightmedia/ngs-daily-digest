@@ -38,6 +38,7 @@ function onOpen() {
     .addItem('Resume automated digest', 'menuResume')
     .addItem('Show digest status', 'menuStatus')
     .addSeparator()
+    .addItem('Sort by time (within each day)', 'menuSortByTime')
     .addItem('Check formatting', 'menuCheckFormatting')
     .addSeparator()
     .addItem('Setup… (admin)', 'menuSetup')
@@ -71,6 +72,109 @@ function dispatchChosenDay(date) {
 function menuCheckFormatting() {
   dispatch_('check_formatting', '');
   toast_('Formatting check triggered — results land in the "Formatting Report" tab in ~1 min.');
+}
+
+/* ── Smart sort: order rows by Start time WITHIN each day block ──────────────
+ * Google's built-in sort treats the day-banner rows as data and scrambles the
+ * schedule. This sorts only the rows between banners, leaving the banners as
+ * fixed dividers. Runs entirely in the sheet (no GitHub token needed) and
+ * preserves formatting: colours are conditional-formatting rules on Type,
+ * dropdowns are range-based, and we write back the underlying time VALUES
+ * (real times, not text). Time logic mirrors schedule_reader.parse_time. */
+
+var WEEKDAYS_ = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+var SCHEDULE_SHEET_ = 'Schedule';
+var OVERNIGHT_CUTOFF_MIN_ = 3 * 60;   // times before 3 AM are after-midnight -> sort to end of day
+var TIME_RE_ = /(\d{1,2}):(\d{2})\s*([ap])\.?m\.?/i;
+
+function menuSortByTime() {
+  var ui = SpreadsheetApp.getUi();
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName(SCHEDULE_SHEET_) || ss.getActiveSheet();
+
+  var values = sh.getDataRange().getValues();        // underlying values (times = Date objects)
+  var shown = sh.getDataRange().getDisplayValues();   // what's on screen (for parsing/sorting)
+  if (!values.length) { toast_('Nothing to sort.'); return; }
+
+  var headerRow = detectHeaderRow_(shown);
+  var header = shown[headerRow].map(function (c) { return String(c).trim().toLowerCase(); });
+  var startCol = header.indexOf('start');
+  if (startCol < 0) { ui.alert('Could not find a "Start" column — nothing sorted.'); return; }
+  var itemCol = header.indexOf('item');
+
+  var resp = ui.alert('Sort by time?',
+    'This reorders the rows under each day banner by Start time (earliest first; ' +
+    'blank/TBD last). Day banners stay put. Colours and dropdowns are preserved.\n\nProceed?',
+    ui.ButtonSet.YES_NO);
+  if (resp !== ui.Button.YES) return;
+
+  // Walk the rows below the header; sort each contiguous run of non-banner rows.
+  var firstData = headerRow + 1;
+  var moved = 0;
+  var runStart = null;  // index into `values` where the current sortable run began
+
+  function flush(runEnd) {
+    if (runStart === null || runEnd - runStart < 2) { runStart = null; return; }
+    var idx = [];
+    for (var i = runStart; i < runEnd; i++) idx.push(i);
+    var before = idx.join(',');
+    idx.sort(function (a, b) {
+      var ka = startMinutes_(shown[a][startCol]);
+      var kb = startMinutes_(shown[b][startCol]);
+      if (ka !== kb) return ka - kb;
+      var ia = itemCol >= 0 ? String(shown[a][itemCol]) : '';
+      var ib = itemCol >= 0 ? String(shown[b][itemCol]) : '';
+      return ia < ib ? -1 : (ia > ib ? 1 : 0);
+    });
+    if (idx.join(',') !== before) {
+      var sortedRows = idx.map(function (i) { return values[i]; });
+      sh.getRange(runStart + 1, 1, sortedRows.length, values[0].length).setValues(sortedRows);
+      moved += sortedRows.length;
+    }
+    runStart = null;
+  }
+
+  for (var r = firstData; r < values.length; r++) {
+    var first = String(shown[r][0] || '').trim();
+    if (isBanner_(first)) { flush(r); continue; }
+    if (runStart === null) runStart = r;
+  }
+  flush(values.length);
+
+  toast_(moved ? ('Sorted ' + moved + ' rows by Start time within each day.')
+               : 'Already in time order — nothing to move.');
+}
+
+/** Minutes since midnight for sorting; blank/TBD/unparseable -> Infinity (sorts
+ *  last); times before 3 AM (and "(next day)") are pushed past 24h. */
+function startMinutes_(raw) {
+  var s = String(raw || '').trim();
+  if (!s) return Infinity;
+  var m = TIME_RE_.exec(s);
+  if (!m) return Infinity;            // "TBD" and the like
+  var hour = parseInt(m[1], 10), min = parseInt(m[2], 10);
+  var pm = m[3].toLowerCase() === 'p';
+  if (pm && hour !== 12) hour += 12;
+  if (!pm && hour === 12) hour = 0;
+  var mins = hour * 60 + min;
+  if (/next day/i.test(s) || mins < OVERNIGHT_CUTOFF_MIN_) mins += 24 * 60;
+  return mins;
+}
+
+function isBanner_(firstCell) {
+  if (!firstCell) return false;
+  var token = String(firstCell).trim().split(/[,\s]+/)[0].toLowerCase();
+  return WEEKDAYS_.indexOf(token) !== -1;
+}
+
+/** Header row = the one carrying Date + Start + Type (mirrors schedule_reader). */
+function detectHeaderRow_(rows) {
+  for (var i = 0; i < rows.length; i++) {
+    var set = {};
+    rows[i].forEach(function (c) { set[String(c).trim().toLowerCase()] = true; });
+    if (set['date'] && set['start'] && set['type']) return i;
+  }
+  return 2;  // fallback: row 3 (0-indexed 2)
 }
 
 function menuPause() {

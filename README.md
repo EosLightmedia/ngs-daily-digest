@@ -30,6 +30,7 @@ workflow and posts within ~1 minute.
 | **Pause automated digest** | Stops the automatic evening send (sets the `DIGEST_PAUSED` flag). Manual sends above still work. |
 | **Resume automated digest** | Turns the automatic evening send back on. |
 | **Show digest status** | Tells you whether the automatic send is currently on or paused. |
+| **Sort by time (within each day)** | Reorders rows under each day banner by Start time (blank/TBD last); banners stay put. Runs in the sheet (no GitHub token needed), preserves colours/dropdowns. |
 | **Check formatting** | Runs the sheet linter: trims whitespace / fixes time formats automatically, and lists anything needing a human in a **Formatting Report** tab. |
 
 ## Timing
