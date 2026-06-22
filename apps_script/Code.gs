@@ -79,10 +79,14 @@ function menuCheckFormatting() {
 /* ── Smart sort: order rows by Start time WITHIN each day block ──────────────
  * Google's built-in sort treats the day-banner rows as data and scrambles the
  * schedule. This sorts only the rows between banners, leaving the banners as
- * fixed dividers. Runs entirely in the sheet (no GitHub token needed) and
- * preserves formatting: colours are conditional-formatting rules on Type,
- * dropdowns are range-based, and we write back the underlying time VALUES
- * (real times, not text). Time logic mirrors schedule_reader.parse_time. */
+ * fixed dividers, and runs entirely in the sheet (no GitHub token needed).
+ *
+ * It sorts each block NATIVELY (Range.sort), so rows physically move with all
+ * their values, number formats and dropdowns intact. We never read time cells
+ * into JS and write them back — that round-trip turns times into Date objects
+ * and corrupts time-only cells (an End of 10:00 AM collapsing to "12/30/1899").
+ * We only write a numeric sort key into a scratch column, sort by it, then drop
+ * that column. Time logic mirrors schedule_reader.parse_time. */
 
 var WEEKDAYS_ = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 var SCHEDULE_SHEET_ = 'Schedule';
@@ -94,57 +98,65 @@ function menuSortByTime() {
   var ss = SpreadsheetApp.getActive();
   var sh = ss.getSheetByName(SCHEDULE_SHEET_) || ss.getActiveSheet();
 
-  var values = sh.getDataRange().getValues();        // underlying values (times = Date objects)
-  var shown = sh.getDataRange().getDisplayValues();   // what's on screen (for parsing/sorting)
-  if (!values.length) { toast_('Nothing to sort.'); return; }
+  var lastRow = sh.getLastRow();
+  var lastCol = sh.getLastColumn();
+  if (lastRow < 2) { toast_('Nothing to sort.'); return; }
 
-  var headerRow = detectHeaderRow_(shown);
+  var shown = sh.getRange(1, 1, lastRow, lastCol).getDisplayValues();  // for parsing only
+  var headerRow = detectHeaderRow_(shown);                             // 0-based
   var header = shown[headerRow].map(function (c) { return String(c).trim().toLowerCase(); });
-  var startCol = header.indexOf('start');
+  var startCol = header.indexOf('start');                              // 0-based
   if (startCol < 0) { ui.alert('Could not find a "Start" column — nothing sorted.'); return; }
-  var itemCol = header.indexOf('item');
 
   var resp = ui.alert('Sort by time?',
     'This reorders the rows under each day banner by Start time (earliest first; ' +
-    'blank/TBD last). Day banners stay put. Colours and dropdowns are preserved.\n\nProceed?',
+    'blank/TBD last). Day banners stay put, and same-time rows keep their order. ' +
+    'Colours, dropdowns and times are preserved.\n\nProceed?',
     ui.ButtonSet.YES_NO);
   if (resp !== ui.Button.YES) return;
 
-  // Walk the rows below the header; sort each contiguous run of non-banner rows.
-  var firstData = headerRow + 1;
-  var moved = 0;
-  var runStart = null;  // index into `values` where the current sortable run began
+  // Scratch column just past the data; ensure the grid has room for it.
+  var keyCol = lastCol + 1;
+  var insertedHelper = false;
+  if (sh.getMaxColumns() < keyCol) {
+    sh.insertColumnsAfter(sh.getMaxColumns(), keyCol - sh.getMaxColumns());
+    insertedHelper = true;
+  }
 
-  function flush(runEnd) {
-    if (runStart === null || runEnd - runStart < 2) { runStart = null; return; }
-    var idx = [];
-    for (var i = runStart; i < runEnd; i++) idx.push(i);
-    var before = idx.join(',');
-    idx.sort(function (a, b) {
-      var ka = startMinutes_(shown[a][startCol]);
-      var kb = startMinutes_(shown[b][startCol]);
-      if (ka !== kb) return ka - kb;
-      var ia = itemCol >= 0 ? String(shown[a][itemCol]) : '';
-      var ib = itemCol >= 0 ? String(shown[b][itemCol]) : '';
-      return ia < ib ? -1 : (ia > ib ? 1 : 0);
-    });
-    if (idx.join(',') !== before) {
-      var sortedRows = idx.map(function (i) { return values[i]; });
-      sh.getRange(runStart + 1, 1, sortedRows.length, values[0].length).setValues(sortedRows);
-      moved += sortedRows.length;
+  var moved = 0;
+  var runStart = null;  // 1-based sheet row where the current run begins
+
+  function flush(runEndExclusive) {  // 1-based, exclusive
+    if (runStart !== null && runEndExclusive - runStart >= 2) {
+      var n = runEndExclusive - runStart;
+      var keys = [];
+      for (var i = 0; i < n; i++) {
+        var mins = startMinutes_(shown[runStart - 1 + i][startCol]);  // Infinity for blank/TBD
+        var base = (mins === Infinity ? 1e9 : mins);
+        keys.push([base * 100000 + i]);  // +i keeps same-time rows in their original order
+      }
+      sh.getRange(runStart, keyCol, n, 1).setValues(keys);
+      // Native sort: physically reorders the block's rows (all columns through
+      // the key col) preserving every value/format. No value round-trip.
+      sh.getRange(runStart, 1, n, keyCol).sort({ column: keyCol, ascending: true });
+      moved += n;
     }
     runStart = null;
   }
 
-  for (var r = firstData; r < values.length; r++) {
-    var first = String(shown[r][0] || '').trim();
+  for (var r = headerRow + 2; r <= lastRow; r++) {  // first data row = headerRow+2 (1-based)
+    var first = String(shown[r - 1][0] || '').trim();
     if (isBanner_(first)) { flush(r); continue; }
     if (runStart === null) runStart = r;
   }
-  flush(values.length);
+  flush(lastRow + 1);
 
-  toast_(moved ? ('Sorted ' + moved + ' rows by Start time within each day.')
-               : 'Already in time order — nothing to move.');
+  // Remove the scratch column.
+  if (insertedHelper) sh.deleteColumn(keyCol);
+  else sh.getRange(1, keyCol, lastRow, 1).clearContent();
+
+  toast_(moved ? 'Sorted rows by Start time within each day.'
+               : 'Nothing needed reordering.');
 }
 
 /** Minutes since midnight for sorting; blank/TBD/unparseable -> Infinity (sorts
