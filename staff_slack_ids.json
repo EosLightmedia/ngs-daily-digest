@@ -1,5 +1,5 @@
 {
-  "_comment": "Map the names used in the sheet's staffing columns (Qsys/Pixera/Network/Tech) to Slack member IDs (U…). Names must match the sheet exactly, including any initial (e.g. 'Liam H'). On-call/remote tags are stripped before lookup. Member IDs are NOT secret. Unmapped names render as bold plain text instead of an @-mention. 'Danny M' = Danny Mannherz, 'Sam' = Sam Slade, and 'Keith' (Qsys, Jun 14) are EXTERNAL (Slack Connect) collaborators — their IDs don't appear in the Eos directory; grabbed via profile → Copy member ID. All resolved below. Note: external @-mentions only notify once those users are members of the deploy channel. 'Liam' is an alias for 'Liam H' (the sheet uses both spellings) -> same ID. GUESTS NOT YET IN SLACK (render as bold text until invited + a U… ID is added here): 'Ghazal' (Pixera, gbazargan@astraproductions.com), 'Panos' (Qsys, panosscourtis@gmail.com).",
+  "_comment": "Map the names used in the sheet's staffing columns (Qsys/Pixera/Network/Tech) to Slack member IDs (U…). Names must match the sheet exactly, including any initial (e.g. 'Liam H'). On-call/remote tags are stripped before lookup. Member IDs are NOT secret. Unmapped names render as bold plain text instead of an @-mention. 'Danny M' = Danny Mannherz, 'Sam' = Sam Slade, and 'Keith' (Qsys, Jun 14) are EXTERNAL (Slack Connect) collaborators — their IDs don't appear in the Eos directory; grabbed via profile → Copy member ID. All resolved below. Note: external @-mentions only notify once those users are members of the deploy channel. 'Liam' is an alias for 'Liam H' (the sheet uses both spellings) -> same ID. 'Panos' (Qsys, panosscourtis@gmail.com) and 'Ghazal' (Pixera, gbazargan@astraproductions.com) are EXTERNAL Slack Connect guests — IDs grabbed via profile -> Copy member ID (they don't surface in a directory search). They only get notified once they're members of the deploy channel.",
   "Oona": "U0831CJ4KK5",
   "Danny M": "U07HCSVMKJS",
   "James": "U05C6R252GL",
@@ -13,5 +13,7 @@
   "Keith": "U06JF3G270U",
   "Derby": "U0AA4GEE5HN",
   "Jared": "U08URCX12SU",
-  "Liam": "U08UE1QL7K8"
+  "Liam": "U08UE1QL7K8",
+  "Panos": "U0B8BL37S80",
+  "Ghazal": "U087V3J5JJW"
 }
