@@ -39,6 +39,8 @@ function onOpen() {
     .addItem('Show digest status', 'menuStatus')
     .addSeparator()
     .addItem('Sort by time (within each day)', 'menuSortByTime')
+    .addItem('Hide past days', 'menuHidePast')
+    .addItem('Show all days', 'menuShowAll')
     .addItem('Check formatting', 'menuCheckFormatting')
     .addSeparator()
     .addItem('Setup… (admin)', 'menuSetup')
@@ -189,6 +191,76 @@ function detectHeaderRow_(rows) {
     if (set['date'] && set['start'] && set['type']) return i;
   }
   return 2;  // fallback: row 3 (0-indexed 2)
+}
+
+/* ── Hide past days: collapse every day block (banner + its rows) dated before
+ * today, keeping today and the future visible. The title/KEY/header rows are
+ * never touched. Idempotent: it first reveals all day rows, then re-hides the
+ * past, so running it each morning rolls the view forward. "today" is taken in
+ * the event timezone to match the digest's day boundaries. */
+
+var EVENT_TZ_ = 'America/New_York';
+var MONTHS_ = {
+  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+  july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+};
+
+/** Date a banner refers to, using `year` (banners carry no year). null if none. */
+function bannerDate_(text, year) {
+  var m = /([A-Za-z]+)\s+(\d{1,2})/.exec(String(text || ''));
+  while (m) {
+    var mon = MONTHS_[m[1].toLowerCase()];
+    if (mon !== undefined) return new Date(year, mon, parseInt(m[2], 10));
+    m = /([A-Za-z]+)\s+(\d{1,2})/.exec(String(text).slice(m.index + m[1].length));
+  }
+  return null;
+}
+
+function dataBounds_() {
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName(SCHEDULE_SHEET_) || ss.getActiveSheet();
+  var lastRow = sh.getLastRow(), lastCol = sh.getLastColumn();
+  var shown = lastRow ? sh.getRange(1, 1, lastRow, lastCol).getDisplayValues() : [];
+  var headerRow = detectHeaderRow_(shown);   // 0-based
+  return { sh: sh, lastRow: lastRow, shown: shown, firstData: headerRow + 2 };  // firstData 1-based
+}
+
+function menuHidePast() {
+  var b = dataBounds_();
+  if (b.lastRow < b.firstData) { toast_('Nothing to filter.'); return; }
+
+  var t = Utilities.formatDate(new Date(), EVENT_TZ_, 'yyyy-MM-dd').split('-');
+  var year = parseInt(t[0], 10);
+  var today = new Date(year, parseInt(t[1], 10) - 1, parseInt(t[2], 10));
+
+  // Collect the banner rows (1-based) and the date each one heads.
+  var banners = [];
+  for (var r = b.firstData; r <= b.lastRow; r++) {
+    var first = String(b.shown[r - 1][0] || '').trim();
+    if (isBanner_(first)) banners.push({ row: r, date: bannerDate_(first, year) });
+  }
+  if (!banners.length) { toast_('No day banners found — nothing to filter.'); return; }
+
+  // Reset (reveal everything) so the result reflects only today's comparison.
+  b.sh.showRows(b.firstData, b.lastRow - b.firstData + 1);
+
+  var hidden = 0;
+  for (var i = 0; i < banners.length; i++) {
+    var start = banners[i].row;
+    var end = (i + 1 < banners.length) ? banners[i + 1].row - 1 : b.lastRow;
+    if (banners[i].date && banners[i].date.getTime() < today.getTime()) {
+      b.sh.hideRows(start, end - start + 1);
+      hidden++;
+    }
+  }
+  toast_(hidden ? ('Hid ' + hidden + ' past day(s) — today and future remain.')
+                : 'No past days to hide.');
+}
+
+function menuShowAll() {
+  var b = dataBounds_();
+  if (b.lastRow >= b.firstData) b.sh.showRows(b.firstData, b.lastRow - b.firstData + 1);
+  toast_('All days shown.');
 }
 
 function menuPause() {

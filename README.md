@@ -31,6 +31,8 @@ workflow and posts within ~1 minute.
 | **Resume automated digest** | Turns the automatic evening send back on. |
 | **Show digest status** | Tells you whether the automatic send is currently on or paused. |
 | **Sort by time (within each day)** | Reorders rows under each day banner by Start time (blank/TBD last); banners stay put. Runs in the sheet (no GitHub token needed), preserves colours/dropdowns. |
+| **Hide past days** | Hides every row and banner for days before today (event timezone); today + future stay. Idempotent — re-run each morning to roll the view forward. |
+| **Show all days** | Reverses "Hide past days" — reveals every day row again. |
 | **Check formatting** | Runs the sheet linter: trims whitespace / fixes time formats automatically, and lists anything needing a human in a **Formatting Report** tab. |
 
 ## Timing
