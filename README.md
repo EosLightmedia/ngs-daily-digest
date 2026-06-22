@@ -26,7 +26,7 @@ workflow and posts within ~1 minute.
 |-----------|--------------|
 | **Send test to test channel** | Posts tomorrow's card to the **test** channel, marked `TEST`. Safe to use anytime. |
 | **Send update (resend tomorrow)** | Re-posts tomorrow's card to the live channel marked `UPDATED` — use after the schedule changes. |
-| **Send a chosen day…** | Pick any date and post that day's card to the live channel. |
+| **Send a chosen day…** | Pick any date and post that day's card. Tick "Send to the test channel first" to preview it in the test channel instead of going live. |
 | **Pause automated digest** | Stops the automatic evening send (sets the `DIGEST_PAUSED` flag). Manual sends above still work. |
 | **Resume automated digest** | Turns the automatic evening send back on. |
 | **Show digest status** | Tells you whether the automatic send is currently on or paused. |

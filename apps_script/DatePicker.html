@@ -5,6 +5,8 @@
     <style>
       body { font-family: Arial, Helvetica, sans-serif; margin: 16px; color: #1c2230; }
       label { display: block; font-size: 13px; margin-bottom: 6px; }
+      label.check { margin-top: 12px; font-size: 13px; cursor: pointer; }
+      label.check input { margin-right: 6px; vertical-align: middle; }
       input[type=date] { font-size: 15px; padding: 6px; width: 100%; box-sizing: border-box; }
       .row { margin-top: 16px; text-align: right; }
       button { font-size: 14px; padding: 7px 14px; margin-left: 8px; cursor: pointer; }
@@ -15,6 +17,7 @@
   <body>
     <label for="d">Which day's schedule should we send?</label>
     <input type="date" id="d">
+    <label class="check"><input type="checkbox" id="test"> Send to the test channel first</label>
     <div class="row">
       <button onclick="google.script.host.close()">Cancel</button>
       <button class="go" id="send" onclick="send()">Send</button>
@@ -29,6 +32,7 @@
 
       function send() {
         var date = document.getElementById('d').value;
+        var toTest = document.getElementById('test').checked;
         if (!date) { document.getElementById('status').textContent = 'Pick a date first.'; return; }
         document.getElementById('send').disabled = true;
         document.getElementById('status').textContent = 'Triggering…';
@@ -38,7 +42,7 @@
             document.getElementById('send').disabled = false;
             document.getElementById('status').textContent = 'Error: ' + e.message;
           })
-          .dispatchChosenDay(date);
+          .dispatchChosenDay(date, toTest);
       }
     </script>
   </body>

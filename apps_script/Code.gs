@@ -63,10 +63,12 @@ function menuSendChosenDay() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Send a chosen day');
 }
 
-/** Called from the DatePicker dialog. date is "YYYY-MM-DD". */
-function dispatchChosenDay(date) {
-  dispatch_('send', date || '');
-  toast_('Send triggered for ' + (date || 'tomorrow') + ' — posts in ~1 min.');
+/** Called from the DatePicker dialog. date is "YYYY-MM-DD"; toTest routes the
+ *  post to the test channel (the 'test' action) instead of the live channel. */
+function dispatchChosenDay(date, toTest) {
+  dispatch_(toTest ? 'test' : 'send', date || '');
+  var where = toTest ? 'the test channel' : 'the live channel';
+  toast_('Send triggered for ' + (date || 'tomorrow') + ' to ' + where + ' — posts in ~1 min.');
 }
 
 function menuCheckFormatting() {
