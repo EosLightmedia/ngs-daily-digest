@@ -207,10 +207,34 @@ def post(blocks: list[dict], fallback: str, channel: str) -> dict:
 
 def upload_image(image_path, caption: str, channel: str,
                  title: str = "NGS Daily Digest") -> dict:
-    """Upload the day's one-page image with its caption — this IS the post."""
-    from slack_sdk import WebClient
+    """Upload the day's one-page image with its caption — this IS the post.
 
-    client = WebClient(token=os.environ["SLACK_BOT_TOKEN"])
-    resp = client.files_upload_v2(channel=channel, file=str(image_path),
-                                  title=title, initial_comment=caption)
-    return resp.get("file", {})
+    Slack's upload endpoint occasionally returns a transient 5xx / times out
+    (the scheduled run is the busiest moment on their CDN), which used to fail
+    the whole job. Retry a few times with backoff so a single hiccup doesn't
+    drop the day's digest.
+    """
+    import time
+    import urllib.error
+
+    from slack_sdk import WebClient
+    from slack_sdk.errors import SlackApiError
+
+    # Give the upload more room than the 30s default — a ~500 KB PNG over a
+    # congested CDN can legitimately take a while.
+    client = WebClient(token=os.environ["SLACK_BOT_TOKEN"], timeout=60)
+
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        try:
+            resp = client.files_upload_v2(channel=channel, file=str(image_path),
+                                          title=title, initial_comment=caption)
+            return resp.get("file", {})
+        except (urllib.error.HTTPError, urllib.error.URLError,
+                TimeoutError, ConnectionError, SlackApiError) as e:
+            if attempt == attempts:
+                raise
+            wait = 2 ** attempt  # 2s, 4s, 8s
+            print(f"Slack upload attempt {attempt}/{attempts} failed ({e!r}); "
+                  f"retrying in {wait}s", flush=True)
+            time.sleep(wait)
