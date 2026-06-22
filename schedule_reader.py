@@ -65,6 +65,27 @@ def _detect_header_row(values: list[list[str]]) -> int:
     return config.HEADER_ROW - 1
 
 
+def read_pause_flag() -> bool:
+    """Return True if the automated digest is paused.
+
+    The pause switch lives in the sheet as the named range
+    config.PAUSE_NAMED_RANGE (TRUE/FALSE), written by the Sheet menu's
+    Pause/Resume. Reading it never blocks the digest: any error (range missing,
+    no creds, API hiccup) is treated as "not paused" so the schedule keeps
+    working even before the switch is set up.
+    """
+    try:
+        gc = _client()
+        sh = gc.open_by_key(config.SHEET_KEY)
+        resp = sh.values_get(config.PAUSE_NAMED_RANGE)
+        vals = resp.get("values", [])
+        cell = (vals[0][0] if vals and vals[0] else "").strip().lower()
+        return cell in ("true", "yes", "paused", "1", "x")
+    except Exception as e:  # noqa: BLE001 — never let a flag read stop the digest
+        print(f"pause-flag read failed ({e}); proceeding unpaused.")
+        return False
+
+
 def load_rows() -> tuple[list[str], list[list[str]]]:
     """Return (header, data_rows) where data_rows are the rows BELOW the header.
 
@@ -315,7 +336,15 @@ def _parse_staff_cell(raw: str) -> list[tuple[str, str]]:
         if m:
             qualifier = re.sub(r"[\s-]+", " ", m.group(0).lower())  # "On-Call" -> "on call"
             part = part[:m.start()] + part[m.end():]                # drop it from the name
-        name = part.strip(" -–—().").strip()
+        # Removing the qualifier can leave an empty "()" (e.g. "Benjamin (remote)")
+        # or a stray dangling paren. Clean those up so the name renders cleanly
+        # ("Benjamin (AM) (remote)" -> name "Benjamin (AM)") instead of mangled
+        # ("Benjamin ( AM (remote)").
+        part = re.sub(r"\(\s*\)", "", part)              # drop empty parens
+        part = re.sub(r"\s+", " ", part).strip(" -–—.")  # collapse space; trim non-paren edges
+        if part.count("(") != part.count(")"):           # unbalanced -> drop the stray paren(s)
+            part = part.replace("(", "").replace(")", "").strip()
+        name = part
         if name:
             out.append((name, qualifier))
     return out

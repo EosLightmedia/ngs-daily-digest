@@ -53,7 +53,16 @@ def main() -> int:
     ap.add_argument("--channel", default=config.SLACK_CHANNEL_ID, help="Slack channel ID")
     ap.add_argument("--note", help="optional bold note prepended to the caption (e.g. UPDATED)")
     ap.add_argument("--dry-run", action="store_true", help="render + print caption, post nothing")
+    ap.add_argument("--skip-if-paused", action="store_true",
+                    help="skip posting if the sheet's pause flag is set (scheduled runs only; "
+                         "manual sends ignore it)")
     args = ap.parse_args()
+
+    # Honoured only for the automated/scheduled send — manual menu sends never
+    # pass this flag, so collaborators can still send while the schedule is paused.
+    if args.skip_if_paused and sr.read_pause_flag():
+        print("Automated digest is paused (DIGEST_PAUSED) — skipping scheduled post.")
+        return 0
 
     target = datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else today_in_tz()
 

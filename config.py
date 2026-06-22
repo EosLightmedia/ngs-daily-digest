@@ -22,6 +22,21 @@ HEADER_ROW = int(os.environ.get("NGS_HEADER_ROW", "3"))
 
 # --- Slack ------------------------------------------------------------------
 SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0B9YCS6ALR")
+# Channel used by "Send test" from the Sheet menu. Defaults to the main channel
+# so a misconfigured deploy is loud rather than silent; set TEST_CHANNEL_ID (env
+# / GitHub repo variable) to a real test channel so test sends stay out of the
+# live channel.
+TEST_CHANNEL_ID = os.environ.get("TEST_CHANNEL_ID", SLACK_CHANNEL_ID)
+
+# --- Header -----------------------------------------------------------------
+# Optional contact line under the date in the card header. Empty = omit it.
+HEADER_CONTACT_LINE = os.environ.get("NGS_HEADER_CONTACT", "")
+
+# --- Pause switch -----------------------------------------------------------
+# Named range in the sheet holding TRUE/FALSE. The Sheet menu's Pause/Resume
+# writes it; the scheduled run reads it (digest.py --skip-if-paused) and skips
+# posting when TRUE. Manual sends ignore it.
+PAUSE_NAMED_RANGE = os.environ.get("NGS_PAUSE_RANGE", "DIGEST_PAUSED")
 
 # --- Timezone ---------------------------------------------------------------
 # "Today" is computed in this zone; the digest is meant for the East-coast crew.
@@ -66,3 +81,15 @@ STAFF_FUNCTION_COLS = [
 # others (Site Team, Management) still render in the Crew Call grid for
 # reference, but aren't auto-tagged — Management is covered by the CC list.
 CREW_TAG_LABELS = {"Q-Sys", "Pixera", "Network", "Tech"}
+
+# --- Formatting lint --------------------------------------------------------
+# Recognised Type values (sheet_lint flags any Type cell outside this set so a
+# typo like "Suppot" can't silently drop a row from the digest). Derived from
+# the TYPE_* drivers above plus the everyday values the sheet uses.
+KNOWN_TYPES = {
+    TYPE_SPAN_MARKER, TYPE_SUPPORT, TYPE_SHOW, TYPE_SHIFT, "Break",
+}
+# Recognised Location values, if you want Location linted too. Empty = skip the
+# Location check (locations change often; leave unset until the zone list is
+# stable). Populate with the sheet's zone names to enable it.
+KNOWN_LOCATIONS: set[str] = set()

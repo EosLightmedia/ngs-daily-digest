@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; margin: 16px; color: #1c2230; }
+      label { display: block; font-size: 13px; margin-bottom: 6px; }
+      input[type=date] { font-size: 15px; padding: 6px; width: 100%; box-sizing: border-box; }
+      .row { margin-top: 16px; text-align: right; }
+      button { font-size: 14px; padding: 7px 14px; margin-left: 8px; cursor: pointer; }
+      .go { background: #146e7d; color: #fff; border: 0; border-radius: 4px; }
+      #status { font-size: 12px; color: #6e7a91; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <label for="d">Which day's schedule should we send?</label>
+    <input type="date" id="d">
+    <div class="row">
+      <button onclick="google.script.host.close()">Cancel</button>
+      <button class="go" id="send" onclick="send()">Send</button>
+    </div>
+    <div id="status"></div>
+
+    <script>
+      // Default to tomorrow (the usual evening-before send).
+      var t = new Date();
+      t.setDate(t.getDate() + 1);
+      document.getElementById('d').value = t.toISOString().slice(0, 10);
+
+      function send() {
+        var date = document.getElementById('d').value;
+        if (!date) { document.getElementById('status').textContent = 'Pick a date first.'; return; }
+        document.getElementById('send').disabled = true;
+        document.getElementById('status').textContent = 'Triggering…';
+        google.script.run
+          .withSuccessHandler(function () { google.script.host.close(); })
+          .withFailureHandler(function (e) {
+            document.getElementById('send').disabled = false;
+            document.getElementById('status').textContent = 'Error: ' + e.message;
+          })
+          .dispatchChosenDay(date);
+      }
+    </script>
+  </body>
+</html>

@@ -2,24 +2,33 @@ name: NGS Daily Digest
 
 on:
   schedule:
-    # 21:00 UTC = 5:00 PM EDT (event runs in June, so Eastern is on DST).
+    # 20:17 UTC ≈ 4:17 PM EDT (event runs in June, so Eastern is on DST).
+    # We fire ~45 min EARLY and off the top of the hour on purpose: GitHub's
+    # shared cron has no timing SLA and is most congested at :00, so a 5:00 PM
+    # (21:00 UTC) schedule routinely landed ~5:45. Firing at an odd minute with a
+    # buffer means even GitHub's typical 15–45 min delay still lands by ~5:00 PM.
     # Posts the NEXT day's digest the evening before.
-    - cron: "0 21 * * *"
-    # One-time extra send: 01:30 UTC Jun 14 = 9:30 PM EDT Jun 13 (re-post Jun 14's
-    # card after late updates). Re-fires Jun 14 next year, but the digest skips
-    # days with no schedule block, so it self-cleans.
-    - cron: "30 1 14 6 *"
+    - cron: "17 20 * * *"
   workflow_dispatch:
     inputs:
+      action:
+        description: "What to do"
+        type: choice
+        default: send
+        options:
+          - send              # post the digest for `date` (default tomorrow) to the main channel
+          - test              # post to the TEST channel, marked TEST
+          - update            # resend the day with an "UPDATED" banner
+          - check_formatting  # lint + safe-fix the sheet, report to its Formatting Report tab
       date:
-        description: "Optional YYYY-MM-DD to report (default: tomorrow)"
+        description: "YYYY-MM-DD (default: tomorrow). Used by send / test / update."
         required: false
       dry_run:
         description: "Render + print caption, post nothing"
         type: boolean
         default: false
       note:
-        description: "Optional bold note prepended to the caption (e.g. UPDATED)"
+        description: "Override the caption banner (optional)"
         required: false
 
 jobs:
@@ -40,20 +49,46 @@ jobs:
           GSPREAD_SERVICE_ACCOUNT: ${{ secrets.GSPREAD_SERVICE_ACCOUNT }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID || 'C0B9YCS6ALR' }}
+          TEST_CHANNEL_ID: ${{ vars.TEST_CHANNEL_ID || '' }}
         run: |
-          # Default to tomorrow in Eastern (the evening-before post). Computed in
-          # America/New_York so it's correct whether the run fires before or after
-          # 00:00 UTC (e.g. the 5 PM and the 9 PM ET triggers).
+          set -euo pipefail
+          EVENT="${{ github.event_name }}"
+          ACTION="${{ inputs.action }}"
+          DRY="${{ inputs.dry_run && '--dry-run' || '' }}"
+
+          # Default target = tomorrow in Eastern (the evening-before post), computed
+          # in America/New_York so it's right regardless of the UTC firing time.
           TARGET="${{ inputs.date }}"
           if [ -z "$TARGET" ]; then TARGET="$(TZ='America/New_York' date -d 'tomorrow' +%F)"; fi
-          # Any scheduled run other than the daily 5 PM cron is an extra/one-time
-          # send -> mark it "UPDATED" (time-agnostic, so changing the one-time
-          # cron's hour won't break this). A manual note input overrides.
-          NOTE_FLAG=""
-          if [ -n "${{ inputs.note }}" ]; then
-            NOTE_FLAG="--note ${{ inputs.note }}"
-          elif [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" != "0 21 * * *" ]; then
-            NOTE_FLAG="--note UPDATED"
+
+          # The automated evening send. Honours the sheet's pause switch; manual
+          # dispatches below never pass --skip-if-paused, so the menu still works
+          # while the schedule is paused.
+          if [ "$EVENT" = "schedule" ]; then
+            echo "Scheduled send for $TARGET"
+            python digest.py --date "$TARGET" --skip-if-paused $DRY
+            exit 0
           fi
-          echo "Target date: $TARGET   note: ${NOTE_FLAG:-(none)}"
-          python digest.py --date "$TARGET" $NOTE_FLAG ${{ inputs.dry_run && '--dry-run' || '' }}
+
+          # Manual dispatch (driven by the Google Sheet menu or the Actions UI).
+          case "$ACTION" in
+            check_formatting)
+              echo "Linting + safe-fixing the sheet"
+              python sheet_lint.py --fix --report-to-sheet
+              ;;
+            test)
+              echo "TEST send for $TARGET -> test channel"
+              python digest.py --date "$TARGET" --channel "$TEST_CHANNEL_ID" \
+                --note "${{ inputs.note || 'TEST' }}" $DRY
+              ;;
+            update)
+              echo "UPDATE send for $TARGET"
+              python digest.py --date "$TARGET" --note "${{ inputs.note || 'UPDATED' }}" $DRY
+              ;;
+            *)  # send
+              echo "Send for $TARGET"
+              NOTE_FLAG=""
+              if [ -n "${{ inputs.note }}" ]; then NOTE_FLAG="--note ${{ inputs.note }}"; fi
+              python digest.py --date "$TARGET" $NOTE_FLAG $DRY
+              ;;
+          esac

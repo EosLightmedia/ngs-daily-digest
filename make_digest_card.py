@@ -193,9 +193,11 @@ def render(K):
     while tsz > 28 and d.textlength(TITLE_DATE, font=tf) > title_max:
         tsz -= 2; tf = F(tsz, bold=True)
     d.text((tx, 100*S), TITLE_DATE, font=tf, fill=(255, 255, 255))
-    # contact line pinned to the bottom of the header band, under the date
-    d.text((tx, HEADER_H - 44*S), "Event Coordinator: Oona Curley  |  646.819.1667",
-           font=f_contact, fill=(230, 235, 244))
+    # Optional contact line pinned to the bottom of the header band, under the
+    # date. Driven by config.HEADER_CONTACT_LINE — empty (the default) omits it.
+    if config.HEADER_CONTACT_LINE:
+        d.text((tx, HEADER_H - 44*S), config.HEADER_CONTACT_LINE,
+               font=f_contact, fill=(230, 235, 244))
 
     # ---- headline + span pill (same row; pill right-aligned) ----
     # Lay out the pill first so the day label can be clamped to the space left
@@ -255,26 +257,55 @@ def render(K):
         y = section_title(y, "Crew Coverage")
         cols = len(CREW_BY_FN)            # all systems on one stripe
         col_w = (w - 2*PAD) / cols
+        gutter = 18*S                     # keep a name from butting into the next column
+        name_max = col_w - gutter
         head_h = 36*S
-        person_h = 62*S
+        asc, desc = f_crew.getmetrics()
+        name_line_h = asc + desc + I(2*S)
+        chip_h = 26*S
+        slot_gap = 18*S                   # vertical space between stacked people
         crew_top = y
-        max_people = max((len(p) for _, p in CREW_BY_FN), default=1)
-        for ci, (label, people) in enumerate(CREW_BY_FN):
+
+        def fit_name(text):
+            """Wrap a crew name to <=2 lines within the column; ellipsize if it
+            still overflows so it can never spill into the neighbouring column."""
+            lines = wrap(text, f_crew, name_max)
+            if len(lines) <= 2:
+                return lines
+            rest = " ".join(lines[1:])
+            while rest and d.textlength(rest + "…", font=f_crew) > name_max:
+                rest = rest[:-1]
+            return [lines[0], (rest + "…") if rest else lines[1]]
+
+        # Pre-wrap every name, then give each row the height of its tallest cell
+        # so columns stay aligned and nothing overlaps vertically or sideways.
+        prepped = [[(fit_name(n), t) for n, t in people] for _, people in CREW_BY_FN]
+        max_people = max((len(p) for p in prepped), default=0)
+        row_y, ry = [], crew_top + head_h
+        for r in range(max_people):
+            nlines = max((len(prepped[c][r][0]) for c in range(cols)
+                          if r < len(prepped[c])), default=1)
+            row_y.append(ry)
+            ry += nlines*name_line_h + 2*S + chip_h + slot_gap
+
+        for ci, (label, _people) in enumerate(CREW_BY_FN):
             x = PAD + ci * col_w
             d.text((x, crew_top), label, font=f_crew_h, fill=TEAL)
-            py = crew_top + head_h
-            if not people:
-                d.text((x, py), "—", font=f_crew, fill=SUB)
+            if not prepped[ci]:
+                d.text((x, crew_top + head_h), "—", font=f_crew, fill=SUB)
                 continue
-            for name, time in people:
-                d.text((x, py), name, font=f_crew, fill=INK)
+            for r, (lines, time) in enumerate(prepped[ci]):
+                py = row_y[r]
+                for li, ln in enumerate(lines):
+                    d.text((x, py + li*name_line_h), ln, font=f_crew, fill=INK)
+                cy = py + len(lines)*name_line_h + 2*S
                 ct = compact_time(time)
                 tw = d.textlength(ct, font=f_chip)
-                d.rounded_rectangle([x, py+28*S, x + tw + 16*S, py+28*S + 26*S],
+                d.rounded_rectangle([x, cy, x + tw + 16*S, cy + chip_h],
                                     radius=7*S, fill=CHIP_BG)
-                d.text((x + 8*S, py+31*S), ct, font=f_chip, fill=CHIP_INK)
-                py += person_h
-        y = crew_top + head_h + max(1, max_people) * person_h + 14*S
+                d.text((x + 8*S, cy + 3*S), ct, font=f_chip, fill=CHIP_INK)
+        # Section bottom = end of the last row (drop the trailing slot gap).
+        y = (ry - slot_gap if max_people else crew_top + head_h + name_line_h) + 14*S
         d.line([(PAD, y), (w - PAD, y)], fill=LINE, width=max(1, I(2*S)))
         y += 44*S
 
