@@ -378,8 +378,10 @@ def render(K):
 # non-linear in K (text re-wraps as type resizes), so we binary-search for the
 # fit rather than assume proportionality — the old proportional shrink overshot
 # and left ~20% of the page empty even while type was scaled well below natural
-# size. K_MAX caps growth so a near-empty schedule doesn't balloon the type.
-K_MIN, K_MAX = 0.2, 1.6
+# size. K_MAX caps growth so a near-empty schedule doesn't balloon the type:
+# capped at 1.0 = the natural design size, so light days sit at normal type with
+# clean whitespace below rather than scaling up cartoonishly large.
+K_MIN, K_MAX = 0.2, 1.0
 lo, hi = K_MIN, K_MAX
 for _ in range(16):
     K = (lo + hi) / 2
@@ -392,16 +394,23 @@ K = lo
 img, cb = render(K)
 
 page_h = int(round(TARGET_H))
-page = Image.new("RGB", (w, page_h), BG)
-page.paste(img.crop((0, 0, w, min(int(round(cb)), page_h))), (0, 0))
+content_h = min(int(round(cb)), page_h)
 
 png = str(BASE / "ngs_digest_card.png")
 pdf = str(BASE / "ngs_digest_card.pdf")
 
-# PNG for Slack (downscaled to logical width; full-bleed Letter aspect)
-out = page.resize((W, int(round(page_h / SS))), Image.LANCZOS)
+# PNG for Slack: trim to the content height so a light (few-event) day posts as a
+# compact card instead of a half-empty Letter page. Busy days fill the page, so
+# content_h ≈ page_h and nothing is lost.
+png_img = img.crop((0, 0, w, content_h))
+png_h = png_img.height
+out = png_img.resize((W, int(round(png_h / SS))), Image.LANCZOS)
 out.save(png)
-# Single full-bleed Letter page PDF for printing (sized via PDF resolution)
-page.save(pdf, "PDF", resolution=w / 8.5)
-print(f"saved {png}  ({W}x{int(round(page_h/SS))}px, fit scale {K:.2f})")
+
+# PDF for printing: always a full, single full-bleed Letter page.
+pdf_page = Image.new("RGB", (w, page_h), BG)
+pdf_page.paste(img.crop((0, 0, w, content_h)), (0, 0))
+pdf_page.save(pdf, "PDF", resolution=w / 8.5)
+
+print(f"saved {png}  ({W}x{int(round(png_h/SS))}px, fit scale {K:.2f})")
 print(f"saved {pdf}  (1 Letter page, full bleed)")
