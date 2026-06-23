@@ -172,13 +172,10 @@ def build_blocks(block: sr.DayBlock, staff_map: dict[str, str] | None = None) ->
                     who += f" _({p['qualifier']})_"
                 people.append(f"{who} {p['span']}".strip())
             lines.append(f"*{fn['label']}*: " + ", ".join(people))
-        blocks.append(_section("\n".join(lines)))
-
-    # --- Staffing Notes (directly under Event Coverage) ---------------------
-    notes = sr.staffing_notes(block)
-    if notes:
-        lines = ["*📝  Staffing Notes*"]
-        lines += [f"• {n}" for n in notes] if len(notes) > 1 else [notes[0]]
+        # Staffing notes ride along as a footnote inside Event Coverage.
+        notes = sr.staffing_notes(block)
+        if notes:
+            lines.append(f"_Staffing notes: {', '.join(notes)}_")
         blocks.append(_section("\n".join(lines)))
 
     # --- Link to the sheet --------------------------------------------------

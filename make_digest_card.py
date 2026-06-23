@@ -310,21 +310,23 @@ def render(K):
                 d.text((x + 8*S, cy + 3*S), ct, font=f_chip, fill=CHIP_INK)
         # Section bottom = end of the last row (drop the trailing slot gap).
         y = (ry - slot_gap if max_people else crew_top + head_h + name_line_h) + 14*S
-        d.line([(PAD, y), (w - PAD, y)], fill=LINE, width=max(1, I(2*S)))
-        y += 44*S
 
-    # ---- staffing notes (directly under Event Coverage) --------------------
-    if STAFFING_NOTES:
-        y = section_title(y, "Staffing Notes")
-        note_max = w - 2*PAD
-        bullet = len(STAFFING_NOTES) > 1   # bullet only when there's more than one
-        for n in STAFFING_NOTES:
-            text = f"•  {n}" if bullet else n
-            for ln in wrap(text, f_body, note_max):
-                d.text((PAD, y), ln, font=f_body, fill=INK)
-                y += 44*S
-            y += 6*S
-        y += 14*S
+        # Staffing notes — a small muted footnote *within* Event Coverage, not
+        # its own section (no big heading, no divider of its own).
+        if STAFFING_NOTES:
+            y += 4*S
+            d.text((PAD, y), "Staffing Notes", font=f_crew_h, fill=SUB)
+            y += 32*S
+            note_max = w - 2*PAD
+            bullet = len(STAFFING_NOTES) > 1   # bullet only when more than one
+            for n in STAFFING_NOTES:
+                text = f"•  {n}" if bullet else n
+                for ln in wrap(text, f_small, note_max):
+                    d.text((PAD, y), ln, font=f_small, fill=SUB)
+                    y += 34*S
+                y += 4*S
+            y += 8*S
+
         d.line([(PAD, y), (w - PAD, y)], fill=LINE, width=max(1, I(2*S)))
         y += 44*S
 
