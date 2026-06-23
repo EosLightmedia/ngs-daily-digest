@@ -146,7 +146,8 @@ def parse_blocks(header: list[str], data: list[list[str]]) -> list[DayBlock]:
     wanted = (
         config.COL_DATE, config.COL_START, config.COL_END, config.COL_LOCATION,
         config.COL_ITEM, config.COL_NOTES, config.COL_TYPE, config.COL_OWNER,
-        config.COL_DRESS_CODE, *[h for h, _ in config.STAFF_FUNCTION_COLS],
+        config.COL_DRESS_CODE, config.COL_STAFFING_NOTES,
+        *[h for h, _ in config.STAFF_FUNCTION_COLS],
     )
     cols = {}
     for name in wanted:
@@ -277,6 +278,21 @@ def dress_code(block: DayBlock) -> str:
         if v and v not in vals:
             vals.append(v)
     return " / ".join(vals)
+
+
+def staffing_notes(block: DayBlock) -> list[str]:
+    """Distinct non-empty Staffing Notes across the day's rows, first-seen order.
+
+    Read from the 'Staffing Notes' column (header-name based, so its position in
+    the sheet doesn't matter). Returned as a list so callers can render one note
+    per line; de-duped because the same note often repeats down a run of rows.
+    """
+    out: list[str] = []
+    for r in block.rows:
+        v = r.get(config.COL_STAFFING_NOTES, "").strip()
+        if v and v not in out:
+            out.append(v)
+    return out
 
 
 def group_consecutive_shows(block: DayBlock) -> list[dict]:

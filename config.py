@@ -61,6 +61,7 @@ COL_NOTES = "Notes"
 COL_TYPE = "Type"
 COL_OWNER = "Owner"
 COL_DRESS_CODE = "Dress Code"
+COL_STAFFING_NOTES = "Staffing Notes"
 
 # --- Crew staffing columns --------------------------------------------------
 # Staffing is no longer dedicated "shift" rows; instead each row carries the

@@ -71,7 +71,7 @@ def build_image_caption(block: sr.DayBlock, staff_map: dict[str, str] | None = N
         lines.append(f"*{note}*")
     lines.append(f"*🗓️  {_schedule_heading(block)}*")
     crew = crew_mentions(block, staff_map)
-    lines.append(f"Crew Coverage: {crew}" if crew else "Crew Coverage: _nobody scheduled_")
+    lines.append(f"Event Coverage: {crew}" if crew else "Event Coverage: _nobody scheduled_")
     cc = ", ".join(f"<@{sid}>" for sid in _load_cc().values())
     if cc:
         lines.append(f"CC: {cc}")
@@ -160,10 +160,10 @@ def build_blocks(block: sr.DayBlock, staff_map: dict[str, str] | None = None) ->
         lines.append("_Nothing scheduled today._")
     blocks.append(_section("\n".join(lines)))
 
-    # --- Crew Call (who's on each system, and when) -------------------------
+    # --- Event Coverage (who's on each system, and when) --------------------
     crew = sr.crew_call(block)
     if crew:
-        lines = ["*🧑‍🔧  Crew Coverage*"]
+        lines = ["*🧑‍🔧  Event Coverage*"]
         for fn in crew:
             people = []
             for p in fn["people"]:
@@ -172,6 +172,13 @@ def build_blocks(block: sr.DayBlock, staff_map: dict[str, str] | None = None) ->
                     who += f" _({p['qualifier']})_"
                 people.append(f"{who} {p['span']}".strip())
             lines.append(f"*{fn['label']}*: " + ", ".join(people))
+        blocks.append(_section("\n".join(lines)))
+
+    # --- Staffing Notes (directly under Event Coverage) ---------------------
+    notes = sr.staffing_notes(block)
+    if notes:
+        lines = ["*📝  Staffing Notes*"]
+        lines += [f"• {n}" for n in notes] if len(notes) > 1 else [notes[0]]
         blocks.append(_section("\n".join(lines)))
 
     # --- Link to the sheet --------------------------------------------------

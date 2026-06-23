@@ -8,10 +8,12 @@ one-page schedule card to Slack:
 - ⏱️ **Day span** — from the grey `Top/End of Day` marker rows
 - 🔵 **Support** — the events that need the team on-site (time · location)
 - 🟢 **Shows** — consecutive show rows collapsed into one entry with a combined summary
-- 🧑‍🔧 **Crew Call** — per system (Q-Sys / Pixera / Network / Tech), who is on it and
-  their day-span (first call → last out), with people **@-mentioned** and
+- 🧑‍🔧 **Event Coverage** — per system (Q-Sys / Pixera / Network / Tech), who is on it
+  and their day-span (first call → last out), with people **@-mentioned** and
   on-call/remote tagged. Spans are derived from the staffing columns across the
   whole day — there are no longer dedicated shift rows.
+- 📝 **Staffing Notes** — directly under Event Coverage: the day's distinct
+  `Staffing Notes` column entries (e.g. who's remote/AM-only).
 - 📋 a link back to the sheet for full detail
 
 It's a *summary* — people open the sheet for the run-of-show.
